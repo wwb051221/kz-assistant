@@ -903,14 +903,17 @@
         var bw = Math.max(9, Math.min(22, cw * 0.46));
         var lab = el('text', { x: cxp, y: top - 5, 'text-anchor': 'middle', 'font-size': rows > 1 ? 9 : 11,
           'font-family': MONO, fill: GRN }, engG);
-        lab.textContent = n <= 2 ? (i === 0 ? T('engLeft') : T('engRight')) : ('#' + (i + 1));
+        lab.textContent = n === 1 ? T('single') : (n === 2 ? (i === 0 ? T('engLeft') : T('engRight')) : ('#' + (i + 1)));
+        var pctLab = el('text', { x: cxp, y: bot + 24, 'text-anchor': 'middle', 'font-size': rows > 1 ? 8 : 9,
+          'font-family': 'MONO', fill: '#5f6f5c' }, engG);
+        pctLab.textContent = '';
         el('rect', { x: cxp - bw / 2 - 2, y: top, width: bw + 4, height: bot - top, fill: '#080b08', stroke: '#223026' }, engG);
         el('rect', { x: cxp - bw / 2 - 2, y: top, width: bw + 4, height: (bot - top) * 10 / 110, fill: AMB, opacity: .14 }, engG);
         var bar = el('rect', { x: cxp - bw / 2, y: bot, width: bw, height: 0, fill: GRN, opacity: .82 }, engG);
         var ab = el('rect', { x: cxp - bw / 2, y: top, width: bw, height: 0, fill: AMB, opacity: .95 }, engG);
         var val = el('text', { x: cxp, y: bot + 13, 'text-anchor': 'middle', 'font-size': rows > 1 ? 11 : 14,
           'font-family': NUM, fill: WHT }, engG);
-        engs.push({ bar: bar, ab: ab, val: val, top: top, bot: bot, h: bot - top });
+        engs.push({ bar: bar, ab: ab, val: val, pct: pctLab, top: top, bot: bot, h: bot - top });
       }
     }
     buildEngines(2);
@@ -965,20 +968,34 @@
         var MT = (window.KZ && KZ.maxThrust) ? KZ.maxThrust() : 110;
         var thrust = Math.round(thr / 100 * MT * (abOn ? 1.15 : 1));
 
+        var thrMin = 999, thrMax = -1, thrSum = 0;
         for (var ei = 0; ei < engs.length; ei++) {
           var e = engs[ei];
-          var fillH = e.h * Math.min(pct, 100 / 110);
+          var ethr = (C.thr && typeof C.thr[ei] === 'number' && C.thr[ei] > 0.1) ? C.thr[ei] : thr;
+          if (ei === 0 && !(C.thr && C.thr[0] > 0.1)) ethr = thr;
+          if (thrMin > ethr) thrMin = ethr;
+          if (thrMax < ethr) thrMax = ethr;
+          thrSum += ethr;
+
+          var epct = cl(ethr, 0, 110) / 110;
+          var eab = ethr > 100.5;
+          var fillH = e.h * Math.min(epct, 100 / 110);
           e.bar.setAttribute('height', fillH.toFixed(1));
           e.bar.setAttribute('y', (e.bot - fillH).toFixed(1));
-          e.ab.setAttribute('height', (abOn ? e.h * (Math.min(pct, 1) - 100 / 110) : 0).toFixed(1));
+          e.ab.setAttribute('height', (eab ? e.h * (Math.min(epct, 1) - 100 / 110) : 0).toFixed(1));
           e.ab.setAttribute('y', e.top);
-          e.val.textContent = thrust;
+          var ethrust = Math.round(ethr / 100 * MT * (eab ? 1.15 : 1));
+          e.val.textContent = ethrust;
+          e.pct.textContent = Math.round(ethr) + '%';
         }
 
-        thrTxt.textContent = Math.round(thr) + '%';
-        abTxt.textContent = abOn ? 'AB' : '';
+        var thrAvg = n > 0 ? thrSum / n : thr;
+        thrTxt.textContent = (thrMax - thrMin > 1)
+          ? (Math.round(thrMin) + '-' + Math.round(thrMax) + '%')
+          : (Math.round(thrAvg) + '%');
+        abTxt.textContent = (thrMax > 100.5) ? 'AB' : '';
         oilTxt.textContent = Math.round(C.oil) + '\u00b0C';
-        engNote.textContent = n + ' \u00d7 ' + thrust + ' kN';
+        engNote.textContent = n + ' \u00d7 ' + Math.round(thrust) + ' kN';
 
         /* --- 计算结果 --- */
         var K2 = (window.KZ && KZ.calc) ? KZ.calc : { es: 0, ps: 0, omega: 0, radius: 0, accel: 0, endur: 0, range: 0 };

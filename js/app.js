@@ -61,7 +61,7 @@
   var V = {
     ias: 0, tas: 0, alt: 0, vy: 0, mach: 0, aoa: 0, aos: 0, g: 1,
     fuel: 0, fuel0: 0, throttle: 0, oil: 0,
-    rpm: [0, 0, 0, 0, 0, 0, 0, 0], engCount: 1,
+    rpm: [0, 0, 0, 0, 0, 0, 0, 0], thr: [0, 0, 0, 0, 0, 0, 0, 0], engCount: 1,
     pitch: 0, roll: 0, hdg: 0,
     gear: 0, gears: null, flaps: 0, brake: 0,
     valid: false, type: '', attSrc: '', trk: -1, trkAt: 0, mock: false, contacts: []
@@ -171,10 +171,14 @@
     V.fuel0 = n(s['Mfuel0, kg'], 0) || V.fuel0;
 
     V.rpm = [0, 0, 0, 0, 0, 0, 0, 0];
+    V.thr = [0, 0, 0, 0, 0, 0, 0, 0];
     var cnt = 0;
     for (var i = 1; i <= 8; i++) {
-        if (typeof s['RPM ' + i] !== 'undefined' && n(s['RPM ' + i], 0) > 0) {
-          V.rpm[i - 1] = n(s['RPM ' + i], 0);
+      var hasRpm = typeof s['RPM ' + i] !== 'undefined';
+      var hasThr = typeof s['throttle ' + i + ', %'] !== 'undefined';
+      if (hasRpm || hasThr) {
+        V.rpm[i - 1] = n(s['RPM ' + i], 0);
+        V.thr[i - 1] = n(s['throttle ' + i + ', %'], n(s['throttle 1, %'], 0));
         cnt++;
       }
     }
@@ -367,6 +371,7 @@
     V.fuel = Math.max(0, V.fuel - dt * 1.1);
     V.rpm = [2760 + 40 * Math.sin(t), 2740 + 40 * Math.cos(t), 0];
     V.engCount = 2;
+    V.thr = [100, 100, 0, 0, 0, 0, 0, 0];
     V.throttle = 92 + 8 * Math.sin(t * 0.9);
     V.oil = 68 + 4 * Math.sin(t * 0.13);
     V.gear = 0; V.flaps = 0; V.brake = 0;
@@ -706,7 +711,10 @@
     C.flaps = lerp(C.flaps, V.flaps, k);
     C.brake = lerp(C.brake, V.brake, k);
     C.engCount = V.engCount;
-    for (var i = 0; i < 8; i++) C.rpm[i] = lerp(C.rpm[i] || 0, V.rpm[i] || 0, k);
+    for (var i = 0; i < 8; i++) {
+      C.rpm[i] = lerp(C.rpm[i] || 0, V.rpm[i] || 0, k);
+      C.thr[i] = lerp(C.thr[i] || 0, V.thr[i] || 0, k);
+    }
 
     C.pitch = lerp(C.pitch, V.pitch, 1 - Math.exp(-dt / 0.14));
     C.roll = lerp(C.roll, V.roll, 1 - Math.exp(-dt / 0.14));
