@@ -1,0 +1,227 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>空战助手 — 战争雷霆副屏仪表</title>
+<link rel="stylesheet" href="css/panel.css">
+</head>
+<body>
+<div id="app">
+
+  <header id="topbar">
+    <div class="brand">
+      <span class="dot" id="linkDot"></span>
+      <span class="brandText">空战助手</span>
+      <span class="brandSub" id="linkText">CONNECTING…</span>
+    </div>
+
+    <div class="acbox">
+      <div class="acName" id="acType">—</div>
+      <div class="badges">
+        <span class="badge" id="badgeAtt">AHRS —</span>
+        <span class="badge" id="badgeMode">—</span>
+      </div>
+    </div>
+
+    <div class="clockbox">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="clockSub" id="session">T+00:00</div>
+      <button id="btnSet" title="设置 (S)">⚙</button>
+      <button id="btnFull" title="全屏 (F)">⛶</button>
+    </div>
+  </header>
+
+  <main id="stage">
+
+    <!-- 仪表（左）：由 js/themes.js 按风格生成 -->
+    <section id="gauges"></section>
+
+    <!-- 3D 姿态（右） -->
+    <section id="view3d">
+      <canvas id="c3d"></canvas>
+      <div id="attScope" class="att-scope"></div>
+      <div id="oblique" class="oblique"></div>
+      <div class="v3-readout" id="v3Readout">
+        <div class="rrow"><span data-i18n="nose">机头</span><b id="rNose">---</b></div>
+        <div class="rrow"><span data-i18n="spd">速度</span><b id="rSpd">---</b></div>
+        <div class="rrow"><span data-i18n="vel">矢量</span><b id="rVel">---</b></div>
+      </div>
+      <div class="v3-feed"></div>
+      <div class="v3-reticle"><span>+</span></div>
+
+      <div class="mfd-head v3-head"><span>MFD 2</span><b>TGP · 3D ATTITUDE</b></div>
+
+      <div class="v3-top">
+        <div class="v3-att" id="attRead">
+          <span>PITCH</span><b id="pitchVal">+0.0°</b>
+          <span>BANK</span><b id="bankVal">0°</b>
+        </div>
+        <div class="v3-hdg"><span>HDG</span><b id="hdgVal">000</b><span class="trkLab">TRK</span><b id="trkVal" class="trk">---</b></div>
+      </div>
+
+      <div class="v3-model" id="modelTag">MODEL · BUILT-IN</div>
+
+      <div class="v3-bottom" id="bankScaleBox">
+        <div class="v3-scale" id="bankScale"></div>
+      </div>
+
+      <div class="v3-frame"></div>
+      <div class="v3-warn" id="stallWarn">STALL</div>
+      <div class="v3-note" id="v3note">3D ATTITUDE</div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= 设置面板 ================= -->
+<div id="settings" class="set-wrap hidden">
+  <div class="set-card">
+    <div class="set-head">
+      <b data-i18n="settings">设置</b>
+      <button id="setClose" title="关闭 (Esc)">✕</button>
+    </div>
+
+    <div class="set-body">
+      <div class="set-row">
+        <label data-i18n="themeL">仪表风格</label>
+        <div class="seg" id="setTheme">
+          <button data-v="wide" data-i18n="tWide">俄系/中式大屏</button>
+          <button data-v="f15" data-i18n="tF15">美系 F-15</button>
+          <button data-v="pfd" data-i18n="tPfd">战斗机 PFD</button>
+          <button data-v="classic" data-i18n="tClassic">经典六表</button>
+          <button data-v="glass" data-i18n="tGlass">玻璃座舱</button>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="layoutL">布局</label>
+        <div class="seg" id="setLayout">
+          <button data-v="auto" data-i18n="lAuto">自动</button>
+          <button data-v="lr" data-i18n="lLr">左右</button>
+          <button data-v="tb" data-i18n="lTb">上下</button>
+          <button data-v="mfd" data-i18n="lMfd">仅仪表</button>
+          <button data-v="3d" data-i18n="l3d">仅 3D</button>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="unitsL">单位</label>
+        <div class="seg" id="setUnits">
+          <button data-v="metric" data-i18n="uMetric">公制</button>
+          <button data-v="imperial" data-i18n="uImp">英制</button>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="langL">语言</label>
+        <div class="seg" id="setLang">
+          <button data-v="zh">中文</button>
+          <button data-v="en">English</button>
+          <button data-v="ru">Русский</button>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="uiL">界面</label>
+        <div class="seg" id="setUi">
+          <button data-v="dark" data-i18n="uiDark">深色</button>
+          <button data-v="light" data-i18n="uiLight">浅色</button>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="modelL">3D 机模</label>
+        <div class="col">
+          <div class="seg" id="setModel3D" style="margin-bottom:6px">
+            <button data-v="axes" data-i18n="mAxes">坐标系</button>
+            <button data-v="scope" data-i18n="mScope">姿态球</button>
+            <button data-v="model" data-i18n="mModel">3D 模型</button>
+          </div>
+          <div class="seg" style="margin-bottom:6px">
+            <button id="btnResetView">复位视角</button>
+            <button id="btnResetModel">重置模型</button>
+          </div>
+          <div class="fileline">
+            <select id="modelSelect" class="sel"><option value="">—</option></select>
+            <button id="btnModel" class="btn" data-i18n="modelLocal">本地文件…</button>
+            <span id="modelName" class="mname">—</span>
+            <input type="file" id="fileModel" accept=".glb,.gltf,.obj" hidden>
+          </div>
+          <div class="slider">
+            <span>朝向</span>
+            <input type="range" id="modelYaw" min="-180" max="180" step="5" value="0">
+            <b id="modelYawV">0°</b>
+          </div>
+          <div class="slider">
+            <span>大小</span>
+            <input type="range" id="modelScale" min="0.4" max="2" step="0.05" value="1">
+            <b id="modelScaleV">1.00×</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="thrustL">单发推力</label>
+        <div class="col">
+          <div class="slider">
+            <span data-i18n="thrustU">推力</span>
+            <input type="range" id="maxThrust" min="20" max="220" step="1" value="110">
+            <b id="maxThrustV">110 kN</b>
+          </div>
+          <div class="seg" id="setThrustAuto">
+            <button data-v="auto" data-i18n="tAuto">按机型自动</button>
+            <button data-v="manual" data-i18n="tManual">手动</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="sensorL">画面</label>
+        <div class="seg" id="setSensor">
+          <button data-v="tgp" data-i18n="sTgp">红外</button>
+          <button data-v="whot" data-i18n="sWhot">白热</button>
+          <button data-v="bhot" data-i18n="sBhot">黑热</button>
+          <button data-v="off" data-i18n="sOff">可见光</button>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="calibL">姿态校准</label>
+        <div class="seg">
+          <button id="btnFlipPitch" data-i18n="flipP">翻转俯仰</button>
+          <button id="btnFlipRoll" data-i18n="flipR">翻转坡度</button>
+        </div>
+      </div>
+
+      <div class="set-row">
+        <label data-i18n="dispL">显示</label>
+        <div class="seg">
+          <button id="btnScale" class="on" data-i18n="scaleBtn">坡度尺</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-foot">
+      <span data-i18n="autosave">设置会自动保存</span>
+      <button id="setOk" class="btn primary" data-i18n="done">完成</button>
+    </div>
+  </div>
+</div>
+
+<div id="vignette"></div>
+<div id="toast"></div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/loaders/GLTFLoader.js"></script>
+<script src="vendor/loaders/OBJLoader.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/gauges.js"></script>
+<script src="js/themes.js"></script>
+<script src="js/attitude.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "J-16",
+    "file": "models/wt/j16/j_16.gltf"
+  },
+  {
+    "name": "F-15A",
+    "file": "models/wt/f15/f_15a.gltf"
+  },
+  {
+    "name": "Su-30SM",
+    "file": "models/wt/su30/su_30sm.gltf"
+  }
+]

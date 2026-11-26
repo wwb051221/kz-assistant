@@ -1,0 +1,31 @@
+# ---- 编译产物 / 二进制 ----
+*.exe
+*.dll
+*.nupkg
+*.zip
+build/app.zip
+build/payload.zip
+build/wv2/
+
+# ---- 签名私钥（严禁上传）----
+sign/*.pfx
+sign/*.pvk
+
+# ---- 游戏版权素材：禁止分发 ----
+models/wt/
+fonts/wt-*.ttf
+tools/wt-unpack.exe
+tools/wt-unpack-README.md
+
+# ---- 用户本地数据 ----
+*.log
+preview-*.png
+'preview.png'
+
+# ---- 系统/编辑器 ----
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/
+.idea/
+node_modules/
