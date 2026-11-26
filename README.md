@@ -87,7 +87,10 @@
 2. 存储位置选「**当前用户**」→「**受信任的根证书颁发机构**」
 3. 之后 `Get-AuthenticodeSignature` 会显示 Valid，SmartScreen 也不再拦
 
-（本机我已经装进「当前用户 → 受信任的根」了，所以校验显示 Valid。）
+> **注意**：本项目**不会**把证书装进系统「受信任的根」。因此 `Get-AuthenticodeSignature` 的
+> `Status` 会显示 `UnknownError` / `NotTrusted` —— 这表示**签名存在但颁发者未被信任**，
+> 属于自签名证书的正常状态；`SignerCertificate` 能读出主体与指纹就说明签名完好。
+> 只有当你手动导入 `.cer` 到受信任根之后，状态才会变成 `Valid`。
 
 ### 校验方法
 
@@ -530,6 +533,7 @@ esircraftsir.grp"` 能看到所有机体名。
 ## 合规
 
 只读 `localhost:8111`；官方论坛口径一般允许，但不作保证。不显示敌人位置、不改游戏。
+
 
 
 
