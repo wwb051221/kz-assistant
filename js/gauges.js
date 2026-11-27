@@ -1516,14 +1516,26 @@
               fill: col, stroke: '#0b1410', 'stroke-width': 1 }, contactG);
             placeLabel(Pc[0] + 11, Pc[1] - 6, lb, col, contactG, 9);
           } else {
-            // 超出量程：贴边画朝外三角（不连线），标注真实距离
-            var cxS = 300, cyS = VBH / 2;
-            var vx2 = P0[0] - cxS, vy2 = P0[1] - cyS;
-            var kx = (600 - 14) / Math.abs(vx2 || 1e-6);
-            var ky = (VBH - 14) / Math.abs(vy2 || 1e-6);
-            var kk = Math.min(kx, ky);
-            var ex2 = cxS + vx2 * kk, ey2 = cyS + vy2 * kk;
-            var ang2 = Math.atan2(vy2, vx2);
+            // 超出量程：贴到「坐标轴最外圈（4 单位）」上，画朝外三角 + 真实距离
+            var dn2 = Math.sqrt(bx * bx + by * by) || 1;
+            var bxr = bx / dn2 * 4.0, byr = by / dn2 * 4.0;
+            var Pr = pj([bxr, byr, 0]);
+            var M2 = 16;
+            var insideP = Pr[0] > M2 && Pr[0] < 600 - M2 && Pr[1] > M2 && Pr[1] < VBH - M2;
+            var ex2, ey2, ang2;
+            if (insideP) {
+              ex2 = Pr[0]; ey2 = Pr[1];
+              ang2 = Math.atan2(Pr[1] - VBH / 2, Pr[0] - 300);
+            } else {
+              // 连外圈都在画面外（缩放/旋转过大）→ 收到面板边缘
+              var cxS = 300, cyS = VBH / 2;
+              var vx2 = Pr[0] - cxS, vy2 = Pr[1] - cyS;
+              var kx = (600 / 2 - M2) / Math.abs(vx2 || 1e-6);
+              var ky = (VBH / 2 - M2) / Math.abs(vy2 || 1e-6);
+              var kk = Math.min(1, Math.min(kx, ky));
+              ex2 = cxS + vx2 * kk; ey2 = cyS + vy2 * kk;
+              ang2 = Math.atan2(vy2, vx2);
+            }
             var rr2 = 7;
             el('polygon', { points:
               (ex2 + rr2 * Math.cos(ang2)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2)).toFixed(1) + ' ' +

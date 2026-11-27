@@ -493,13 +493,21 @@
     V.rpm = [2760 + 40 * Math.sin(t), 2740 + 40 * Math.cos(t), 0];
     V.engCount = 2;
     V.thr = [100, 100, 0, 0, 0, 0, 0, 0];
-    // mock 敌情：用于验证 3D 视图绘制（含近距离挤在一起的情况）
+    // mock 敌情：可用 ?contacts=5,30,60 覆盖（单位 km），便于验证超量程表现
+    var _cq = (qs.get('contacts') || '').split(',').filter(function (x) { return x !== ''; });
+    if (_cq.length) {
+      V.contacts = _cq.map(function (v, i) {
+        return { brg: (i * 47) % 360, dist: (parseFloat(v) || 5) * 1000, kind: i % 3 === 0 ? 'MSL' : 'AIR',
+                 icon: 'Fighter', dir: ((i * 47) + 30) % 360, est: false };
+      });
+    } else {
     V.contacts = [
       { brg: 20, dist: 3200, kind: 'AIR', icon: 'Fighter', dir: 30, est: false },
       { brg: 35, dist: 4800, kind: 'AIR', icon: 'Bomber', dir: 40, est: false },
       { brg: 12, dist: 900, kind: 'MSL', icon: 'missile', dir: 15, est: false },
       { brg: 200, dist: 8200, kind: 'AIR', icon: 'Fighter', dir: 210, est: false }
     ];
+    }
     V.throttle = 92 + 8 * Math.sin(t * 0.9);
     V.oil = 68 + 4 * Math.sin(t * 0.13);
     V.gear = 0; V.flaps = 0; V.brake = 0;
