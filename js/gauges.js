@@ -1159,14 +1159,12 @@
     host.innerHTML = '';
     var K = window.KZ || {};
     function T(k) { return K.t ? K.t(k) : k; }
-    var W = 600, H = 600, cx = 300, cy = 330, U = 104;
+    var W = 600, H = 600, cx = 300, cy = 340, U = 96;
     var OK = 0.35355339;                        // 斜二测 Y 投影系数
 
     var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'xMidYMid meet' }, host);
 
     // 机体系 -> 屏幕（斜二测）：body x=右, y=机头, z=上
-    // 第 IV 卦限视角（x>0, y<0, z>0 观察）：
-    // +X 向右、+Z 向上、+Y 向后（屏幕上左上 45°，长度减半）
     function pj(v) {
       return [cx + (v[0] - v[1] * OK) * U, cy - (v[2] + v[1] * OK) * U];
     }
@@ -1178,7 +1176,6 @@
       return l;
     }
     function headTo(b, color, parent) {
-      // 箭头尖（屏幕 2D）
       var A = pj([0, 0, 0]), B = pj(b);
       var ang = Math.atan2(B[1] - A[1], B[0] - A[0]);
       var sz = 9;
@@ -1196,80 +1193,107 @@
       return e;
     }
 
-    /* ---------- 地形地格（机体水平面，固定） ---------- */
+    /* ---------- 投影说明 ---------- */
+    el('text', { x: 18, y: 26, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, svg)
+      .textContent = '\u89c6\u89d2\uff1a\u7b2c IV \u5366\u9650';
+    el('text', { x: 18, y: 44, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#4f6a58' }, svg)
+      .textContent = 'f(x,y,z) = (x \u2212 0.354y, z + 0.354y)';
+
+    /* ---------- 地面网格 ---------- */
     for (var gi = -3; gi <= 3; gi++) {
       if (gi === 0) continue;
       seg([gi, -3, 0], [gi, 3, 0], '#182219', 1);
       seg([-3, gi, 0], [3, gi, 0], '#182219', 1);
     }
 
+    /* ---------- 距离球（三个正交大圆）+ 地面刻度 ---------- */
+    function ellipseOn(parent, c, r, z, color, w, dash) {
+      var pts = [];
+      for (var a = 0; a <= 360; a += 6) {
+        var t = a * Math.PI / 180;
+        var P = pj([c[0] + r * Math.cos(t), c[1] + r * Math.sin(t), (c[2] || 0) + (z || 0)]);
+        pts.push(P[0].toFixed(1) + ',' + P[1].toFixed(1));
+      }
+      return el('polygon', { points: pts.join(' '), fill: 'none', stroke: color,
+        'stroke-width': w || 1, 'stroke-dasharray': dash || '3 6', opacity: .45 }, parent);
+    }
+    function sphere(km, color) {
+      var r = km / 5;                             // 5 km = 1 单位
+      ellipseOn(svg, [0, 0, 0], r, 0, color);                     // 水平面
+      var pts;
+      // XZ 平面大圆
+      pts = [];
+      for (var a = 0; a <= 360; a += 6) {
+        var t = a * Math.PI / 180;
+        var P = pj([r * Math.sin(t), 0, r * Math.cos(t)]);
+        pts.push(P[0].toFixed(1) + ',' + P[1].toFixed(1));
+      }
+      el('polygon', { points: pts.join(' '), fill: 'none', stroke: color, 'stroke-width': 1,
+        'stroke-dasharray': '2 7', opacity: .3 }, svg);
+      // YZ 平面大圆
+      pts = [];
+      for (var b = 0; b <= 360; b += 6) {
+        var t2 = b * Math.PI / 180;
+        var P2 = pj([0, r * Math.sin(t2), r * Math.cos(t2)]);
+        pts.push(P2[0].toFixed(1) + ',' + P2[1].toFixed(1));
+      }
+      el('polygon', { points: pts.join(' '), fill: 'none', stroke: color, 'stroke-width': 1,
+        'stroke-dasharray': '2 7', opacity: .3 }, svg);
+    }
+    sphere(5, '#2f4a37');
+    sphere(10, '#23372a');
+
+    /* ---------- 地面上的距离刻度 ---------- */
+    [[5, '5 km'], [10, '10 km']].forEach(function (it) {
+      var r = it[0] / 5;
+      [[r, 0], [-r, 0], [0, r], [0, -r]].forEach(function (p, idx) {
+        var P = pj([p[0], p[1], 0]);
+        el('text', { x: P[0].toFixed(1), y: (P[1] + (idx < 2 ? 12 : 4)).toFixed(1),
+          'text-anchor': 'middle', 'font-size': 9, 'font-family': 'WT Mono, Consolas, monospace',
+          fill: '#3f5f4a' }, svg).textContent = it[1];
+      });
+    });
+
     /* ---------- 小飞机模型（原点） ---------- */
     var planeG = el('g', null, svg);
-    // 投影后绘制：机身沿 +Y，机翼沿 ±X，垂尾在 -Y 处竖起
     function poly(pts, fill, stroke, w) {
       var s2 = pts.map(function (v) { var P = pj(v); return P[0].toFixed(1) + ',' + P[1].toFixed(1); }).join(' ');
       el('polygon', { points: s2, fill: fill, stroke: stroke, 'stroke-width': w || 1, 'stroke-linejoin': 'round' }, planeG);
     }
-    // 机翼
     poly([[0, 0.16, 0], [0.95, -0.05, 0], [0.95, -0.16, 0], [0, -0.06, 0],
           [-0.95, -0.16, 0], [-0.95, -0.05, 0]], '#c7d2d9', '#8b979e', 1.2);
-    // 机身
     poly([[0, 0.86, 0], [0.10, 0.30, 0], [0.10, -0.62, 0], [-0.10, -0.62, 0],
           [-0.10, 0.30, 0]], '#dde5ea', '#8b979e', 1.2);
-    // 平尾
     poly([[0, -0.42, 0], [0.42, -0.62, 0], [0.42, -0.70, 0], [0, -0.60, 0],
           [-0.42, -0.70, 0], [-0.42, -0.62, 0]], '#bfcad1', '#8b979e', 1.1);
-    // 垂尾（沿 Z 竖起）
     poly([[0, -0.34, 0], [0, -0.62, 0.30], [0, -0.72, 0.30], [0, -0.60, 0]], '#9fb0ba', '#8b979e', 1.1);
-    // 座舱
     poly([[0, 0.30, 0.02], [0.06, 0.12, 0.02], [0.06, 0.02, 0.02], [-0.06, 0.02, 0.02],
           [-0.06, 0.12, 0.02]], '#5f7d8c', '#4a6472', 1);
 
     /* ---------- 固定机体轴 ---------- */
     var bodyG = el('g', null, svg);
-    seg([0, 0, 0], [1.75, 0, 0], '#ff9f5e', 2.4, null, bodyG);       // 右
-    txt('右', headTo([1.75, 0, 0], '#ff9f5e', bodyG), '#ff9f5e', 12, bodyG);
-    seg([0, 0, 0], [0, 2.05, 0], '#58a6ff', 2.6, null, bodyG);       // 机头
-    txt('机头', headTo([0, 2.05, 0], '#58a6ff', bodyG), '#58a6ff', 12, bodyG);
-    seg([0, 0, 0], [0, 0, 1.5], '#7ee787', 2.4, null, bodyG);        // 上
-    txt('上', headTo([0, 0, 1.5], '#7ee787', bodyG), '#7ee787', 12, bodyG);
-
-    /* ---------- 距离环（5/10 km，地面平面） ---------- */
-    function ring(km, color, dash) {
-      var r = km / 5;                       // 5 km = 1 单位
-      var pts = [];
-      for (var a = 0; a <= 360; a += 6) {
-        var t = a * Math.PI / 180;
-        var P = pj([r * Math.sin(t), r * Math.cos(t), 0]);
-        pts.push(P[0].toFixed(1) + ',' + P[1].toFixed(1));
-      }
-      var pl = el('polygon', { points: pts.join(' '), fill: 'none', stroke: color,
-        'stroke-width': 1, 'stroke-dasharray': dash || '3 5', opacity: .5 }, svg);
-      return pl;
-    }
-    ring(5, '#2f4a37');
-    ring(10, '#23372a');
+    seg([0, 0, 0], [1.75, 0, 0], '#ff9f5e', 2.4, null, bodyG);
+    txt('\u53f3', headTo([1.75, 0, 0], '#ff9f5e', bodyG), '#ff9f5e', 12, bodyG);
+    seg([0, 0, 0], [0, 2.05, 0], '#58a6ff', 2.6, null, bodyG);
+    txt('\u673a\u5934', headTo([0, 2.05, 0], '#58a6ff', bodyG), '#58a6ff', 12, bodyG);
+    seg([0, 0, 0], [0, 0, 1.5], '#7ee787', 2.4, null, bodyG);
+    txt('\u4e0a', headTo([0, 0, 1.5], '#7ee787', bodyG), '#7ee787', 12, bodyG);
 
     /* ---------- 图例 ---------- */
-    var LEG = [
-      ['#ff5cd2', 'MSL'], ['#ff6b5e', 'AIR'], ['#d8a95c', 'GND'], ['#7fd1ff', 'SUR']
-    ];
+    var LEG = [['#ff5cd2', 'MSL'], ['#ff6b5e', 'AIR'], ['#d8a95c', 'GND'], ['#7fd1ff', 'SUR']];
     var legName = { MSL: T('kMsl'), AIR: T('kAir'), GND: T('kGnd'), SUR: T('kSur') };
-    el('text', { x: 22, y: 486, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, svg)
-      .textContent = T('legend') + '  \u00b7  5 / 10 km  \u00b7  ' + '\u2192 ' + T('heading');
+    el('text', { x: 22, y: 470, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, svg)
+      .textContent = T('legend') + '  \u00b7  ' + T('heading');
     LEG.forEach(function (it, i) {
-      var y = 508 + i * 20;
-      el('circle', { cx: 28, cy: y - 4, r: 4, fill: it[0] }, svg);
-      el('text', { x: 40, y: y, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#8fa39a' }, svg)
+      var y = 492 + i * 19;
+      el('rect', { x: 24, y: y - 8, width: 8, height: 8, fill: it[0] }, svg);
+      el('text', { x: 38, y: y, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#8fa39a' }, svg)
         .textContent = it[1] + ' ' + (legName[it[1]] || '');
     });
 
-    /* ---------- 敌情标记（游戏已点亮的目标） ---------- */
+    /* ---------- 动态图层 ---------- */
     var contactG = el('g', null, svg);
-
-    /* ---------- 世界轴（随机体姿态反向旋转） ---------- */
     var velG = el('g', null, svg);
-    var wLab = [];
 
     function clear(g) { while (g.firstChild) g.removeChild(g.firstChild); }
 
@@ -1283,76 +1307,64 @@
       var u2 = [u[0] * cr + rh[0] * sr, u[1] * cr + rh[1] * sr, u[2] * cr + rh[2] * sr];
       return { f: f, r: r2, u: u2 };
     }
-    function toBody(v, b) {
-      return [
-        v[0] * b.r[0] + v[1] * b.r[1] + v[2] * b.r[2],
-        v[0] * b.f[0] + v[1] * b.f[1] + v[2] * b.f[2],
-        v[0] * b.u[0] + v[1] * b.u[1] + v[2] * b.u[2]
-      ];
-    }
 
     var lastT = 0, lp = 999, lr = 999, lh = 999, lastSig = '';
     return {
       set: function (C, V) {
         var now = performance.now();
         var cs0 = (V && V.contacts) ? V.contacts : [];
-        var sig = cs0.length + ':' + cs0.map(function (c) { return Math.round(c.brg) + '/' + Math.round(c.dist / 100); }).join(',');
-        var changed = Math.abs(C.pitch - lp) > 0.3 || Math.abs(C.roll - lr) > 0.3 || Math.abs(C.hdg - lh) > 0.3 || sig !== lastSig;
+        var sig = cs0.length + ':' + cs0.map(function (c) {
+          return Math.round(c.brg) + '/' + Math.round(c.dist / 100) + '/' + Math.round(c.dir || 0);
+        }).join(',') + '/' + Math.round(C.tas);
+        var changed = Math.abs(C.pitch - lp) > 0.3 || Math.abs(C.roll - lr) > 0.3 ||
+                      Math.abs(C.hdg - lh) > 0.3 || sig !== lastSig;
         if (!changed && now - lastT < 90) return;
         lastT = now; lp = C.pitch; lr = C.roll; lh = C.hdg; lastSig = sig;
 
-        var b = rot(C.pitch, C.roll, C.hdg);
-
-        // （世界轴已按需求隐藏，只保留机体轴与速度矢量）
-
-        // 敌情：在机体水平面（XY）上画“朝向线段”，起点为目标位置
+        /* ---- 敌情：圆柱（在 z 方向有高度）---- */
         clear(contactG);
-        var cs = (V && V.contacts) ? V.contacts : [];
-        for (var ci = 0; ci < cs.length; ci++) {
-          var cc = cs[ci];
-          var d = Math.min(3, cc.dist / 1000 / 5);          // 5 km = 1 单位，>15km 贴边
+        var CH = 0.26;                       // 圆柱高度（单位）
+        for (var ci = 0; ci < cs0.length; ci++) {
+          var cc = cs0[ci];
+          var d = Math.min(3, cc.dist / 1000 / 5);
           var dlt = (cc.brg - C.hdg) * Math.PI / 180;
           var bx = d * Math.sin(dlt), by = d * Math.cos(dlt);
-
-          // 目标朝向 → 机体系方向
-          var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
-          var L = 0.36;                                      // 线段长度（约 1.8 km 视觉长度）
-          var ex = bx + Math.sin(dRel) * L;
-          var ey = by + Math.cos(dRel) * L;
-
           var col = cc.kind === 'MSL' ? '#ff5cd2' : (cc.kind === 'AIR' ? '#ff6b5e' : (cc.kind === 'GND' ? '#d8a95c' : '#7fd1ff'));
-          var A = pj([bx, by, 0]), B2 = pj([ex, ey, 0]);
+          var rr = cc.kind === 'MSL' ? 0.075 : 0.06;
 
-          // 朝向线段（XY 平面内）
-          el('line', { x1: A[0].toFixed(1), y1: A[1].toFixed(1), x2: B2[0].toFixed(1), y2: B2[1].toFixed(1),
-            stroke: col, 'stroke-width': cc.kind === 'MSL' ? 2.8 : 2.2, 'stroke-linecap': 'round' }, contactG);
-
-          // 起点小方点（目标位置）
-          el('rect', { x: (A[0] - 1.8).toFixed(1), y: (A[1] - 1.8).toFixed(1), width: 3.6, height: 3.6,
-            fill: col }, contactG);
-
-          // 箭头尖端
-          var angs = Math.atan2(B2[1] - A[1], B2[0] - A[0]);
-          var hs = 6;
-          el('polygon', { points:
-            B2[0].toFixed(1) + ',' + B2[1].toFixed(1) + ' ' +
-            (B2[0] - hs * Math.cos(angs - 0.45)).toFixed(1) + ',' + (B2[1] - hs * Math.sin(angs - 0.45)).toFixed(1) + ' ' +
-            (B2[0] - hs * Math.cos(angs + 0.45)).toFixed(1) + ',' + (B2[1] - hs * Math.sin(angs + 0.45)).toFixed(1),
-            fill: col }, contactG);
-
+          // 底面 + 顶面
+          ellipseOn(contactG, [bx, by, 0], rr, 0, col, 1.2, 'none');
+          ellipseOn(contactG, [bx, by, CH], rr, 0, col, 1.2, 'none');
+          // 侧壁（取左右两条母线）
+          seg([bx - rr, by, 0], [bx - rr, by, CH], col, 1.2, null, contactG);
+          seg([bx + rr, by, 0], [bx + rr, by, CH], col, 1.2, null, contactG);
+          seg([bx, by - rr * OK * 2, 0], [bx, by - rr * OK * 2, CH], col, 1, null, contactG);
+          // 顶面朝向箭头
+          var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
+          var hs = rr * 2.6;
+          seg([bx, by, CH], [bx + Math.sin(dRel) * hs, by + Math.cos(dRel) * hs, CH], col, 2, null, contactG);
           // 距离标签
-          el('text', { x: (B2[0] + 6).toFixed(1), y: (B2[1] + 3).toFixed(1), 'font-size': 9,
+          var top = pj([bx, by, CH]);
+          el('text', { x: (top[0] + 8).toFixed(1), y: (top[1] - 4).toFixed(1), 'font-size': 9,
             'font-family': 'WT Mono, Consolas, monospace', fill: col }, contactG)
             .textContent = cc.dist > 1000 ? (cc.dist / 1000).toFixed(0) + 'km' : Math.round(cc.dist) + 'm';
         }
 
-        // 速度矢量：相对机头按迎角下偏、侧滑偏转
+        /* ---- 本机速度矢量：长度随速度，方向随航迹 ---- */
         clear(velG);
         var aa = C.aoa * Math.PI / 180, ss = C.aos * Math.PI / 180;
-        var vv = [Math.sin(ss) * Math.cos(aa), Math.cos(ss) * Math.cos(aa), -Math.sin(aa)];
-        var ev = [vv[0] * 2.4, vv[1] * 2.4, vv[2] * 2.4];
-        seg([0, 0, 0], ev, '#ff5cd2', 2.2, null, velG);
-        txt('VEL', headTo(ev, '#ff5cd2', velG), '#ff5cd2', 12, velG);
+        var vdir = [Math.sin(ss) * Math.cos(aa), Math.cos(ss) * Math.cos(aa), -Math.sin(aa)];
+        var spd = Math.max(0, C.tas);
+        var L = Math.max(0.55, Math.min(2.9, spd / 380));       // 380 km/h ≈ 1 单位
+        var tip = [vdir[0] * L, vdir[1] * L, vdir[2] * L];
+        seg([0, 0, 0], tip, '#ff5cd2', 2.6, null, velG);
+        var B = headTo(tip, '#ff5cd2', velG);
+        var K2 = window.KZ || {};
+        var unit = (K2.speedUnit ? K2.speedUnit() : 'KM/H');
+        var shown = K2.speed ? Math.round(K2.speed(spd)) : Math.round(spd);
+        var lab = el('text', { x: (B[0] + 8).toFixed(1), y: (B[1] + 4).toFixed(1), 'font-size': 11,
+          'font-family': 'WT Mono, Consolas, monospace', fill: '#ff5cd2' }, velG);
+        lab.textContent = 'VEL ' + shown + ' ' + unit;
       }
     };
   }
