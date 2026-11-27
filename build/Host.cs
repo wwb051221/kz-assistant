@@ -18,7 +18,7 @@ using Microsoft.Win32;
 static class Program
 {
     const string Name = "空战助手";
-    const string Version = "1.0.4";
+    const string Version = "1.0.5";
 
     static string DataDir;
     static string WebDir;
@@ -80,7 +80,7 @@ static class Program
         public PanelForm(int port)
         {
             this.port = port;
-            Text = Name + " 1.0.4 测试版";
+            Text = Name + " 1.0.5 测试版";
             BackColor = Color.Black;
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.Manual;
@@ -181,17 +181,41 @@ static class Program
     static void EnsureAssets()
     {
         string marker = Path.Combine(WebDir, "version.txt");
-        if (File.Exists(marker) && File.ReadAllText(marker).Trim() == Version) return;
+        string index = Path.Combine(WebDir, "index.html");
 
-        if (Directory.Exists(WebDir)) Directory.Delete(WebDir, true);
-        Directory.CreateDirectory(WebDir);
+        // 只有「标记正确 + 首页存在」才算完整，否则重新解包
+        if (File.Exists(marker) && File.Exists(index) &&
+            string.Equals(File.ReadAllText(marker).Trim(), Version, StringComparison.Ordinal))
+            return;
 
         Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream("WebAssets");
         if (s == null) throw new Exception("找不到内嵌资源");
-        string tmp = Path.Combine(Path.GetTempPath(), "kz_" + Guid.NewGuid().ToString("N") + ".zip");
-        using (FileStream fs = File.Create(tmp)) s.CopyTo(fs);
-        ZipFile.ExtractToDirectory(tmp, WebDir);
-        File.Delete(tmp);
+
+        string tmpZip = Path.Combine(Path.GetTempPath(), "kz_" + Guid.NewGuid().ToString("N") + ".zip");
+        using (FileStream fs = File.Create(tmpZip)) s.CopyTo(fs);
+
+        // 先解到独立目录，校验完整后再换上去（避免和正在运行的旧实例抢文件）
+        string stage = WebDir + ".new";
+        if (Directory.Exists(stage)) Directory.Delete(stage, true);
+        Directory.CreateDirectory(stage);
+        ZipFile.ExtractToDirectory(tmpZip, stage);
+        File.Delete(tmpZip);
+
+        if (!File.Exists(Path.Combine(stage, "index.html")) ||
+            !File.Exists(Path.Combine(stage, Path.Combine("css", "panel.css"))))
+            throw new Exception("解包不完整：缺少 index.html 或 css");
+
+        if (Directory.Exists(WebDir))
+        {
+            try { Directory.Delete(WebDir, true); }
+            catch
+            {
+                // 旧目录被占用：改名挪开，稍后忽略
+                string old = WebDir + ".old" + DateTime.Now.Ticks;
+                try { Directory.Move(WebDir, old); } catch { }
+            }
+        }
+        Directory.Move(stage, WebDir);
         File.WriteAllText(marker, Version);
     }
 
