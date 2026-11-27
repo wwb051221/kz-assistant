@@ -1191,7 +1191,7 @@
       svg.setAttribute('viewBox', '0 0 600 ' + VBH.toFixed(0));
       cx = 300;
       cy = VBH * 0.50;                 // 垂直居中
-      U = Math.max(116, Math.min(190, VBH * 0.21));   // 坐标系放大
+      U = Math.max(70, Math.min(112, Math.min(600, VBH) * 0.155));  // 1 单位 = 50 km，轴长 4 单位
       drawStatic();
       dirty = true;
     }
@@ -1266,15 +1266,15 @@
       staticBoxes = [];
 
       // 地面网格
-      for (var gi = -3; gi <= 3; gi++) {
+      for (var gi = -4; gi <= 4; gi++) {
         if (gi === 0) continue;
-        seg([gi, -3, 0], [gi, 3, 0], '#182219', 1, null, staticG);
-        seg([-3, gi, 0], [3, gi, 0], '#182219', 1, null, staticG);
+        seg([gi, -4, 0], [gi, 4, 0], '#182219', 1, null, staticG);
+        seg([-4, gi, 0], [4, gi, 0], '#182219', 1, null, staticG);
       }
 
       // 距离球（三个正交大圆）
       function sphere(km2, color) {
-        var r = km2 / 5;
+        var r = km2 / 50;
         ellipseOn(staticG, [0, 0, 0], r, 0, color);
         var pts = [];
         for (var a = 0; a <= 360; a += 6) {
@@ -1293,11 +1293,12 @@
         el('polygon', { points: pts.join(' '), fill: 'none', stroke: color, 'stroke-width': 1,
           'stroke-dasharray': '2 7', opacity: .3 }, staticG);
       }
-      sphere(5, '#2f4a37');
-      sphere(10, '#23372a');
+      sphere(50, '#2f4a37');
+      sphere(100, '#23372a');
+      sphere(200, '#1b2a20');
 
       // 地面距离刻度
-      [[5, '5 km'], [10, '10 km']].forEach(function (it) {
+      [[50, '50 km'], [100, '100 km'], [200, '200 km']].forEach(function (it) {
         var r = it[0] / 5;
         // 标注放在 45° 方向，避开 X/Y 轴标签
         var d45 = r * 0.7071;
@@ -1324,14 +1325,14 @@
       poly([[0, -0.34, 0], [0, -0.62, 0.30], [0, -0.72, 0.30], [0, -0.60, 0]], '#9fb0ba', '#8b979e', 1.1);
 
       // 机体三轴：X / Y / Z
-      seg([0, 0, 0], [2.0, 0, 0], '#ff9f5e', 2.8, null, staticG);
-      var bX = headTo([2.0, 0, 0], '#ff9f5e', staticG, 10);
+      seg([0, 0, 0], [4.0, 0, 0], '#ff9f5e', 2.8, null, staticG);
+      var bX = headTo([4.0, 0, 0], '#ff9f5e', staticG, 10);
       txt('X', bX, '#ff9f5e', 15, staticG); regBox(bX[0] + 9, bX[1] + 4, 'X', 15);
-      seg([0, 0, 0], [0, 2.35, 0], '#58a6ff', 3.0, null, staticG);
-      var bY = headTo([0, 2.35, 0], '#58a6ff', staticG, 10);
+      seg([0, 0, 0], [0, 4.4, 0], '#58a6ff', 3.0, null, staticG);
+      var bY = headTo([0, 4.4, 0], '#58a6ff', staticG, 10);
       txt('Y', bY, '#58a6ff', 15, staticG); regBox(bY[0] + 9, bY[1] + 4, 'Y', 15);
-      seg([0, 0, 0], [0, 0, 1.75], '#7ee787', 2.8, null, staticG);
-      var bZ = headTo([0, 0, 1.75], '#7ee787', staticG, 10);
+      seg([0, 0, 0], [0, 0, 3.2], '#7ee787', 2.8, null, staticG);
+      var bZ = headTo([0, 0, 3.2], '#7ee787', staticG, 10);
       txt('Z', bZ, '#7ee787', 15, staticG); regBox(bZ[0] + 9, bZ[1] + 4, 'Z', 15);
 
       // 图例
@@ -1439,7 +1440,7 @@
         }
         for (var ci = 0; ci < cs0.length; ci++) {
           var cc = cs0[ci];
-          var d = Math.min(3, cc.dist / 1000 / 5);
+          var d = Math.min(4, cc.dist / 1000 / 50);
           var dlt = (cc.brg - C.hdg) * Math.PI / 180;
           var bx = d * Math.sin(dlt), by = d * Math.cos(dlt);
           var col = cc.kind === 'MSL' ? '#ff5cd2' : (cc.kind === 'AIR' ? '#ff6b5e' : (cc.kind === 'GND' ? '#d8a95c' : '#7fd1ff'));
@@ -1466,45 +1467,36 @@
         var L = Math.max(0.55, Math.min(2.9, spd / 380));
         var tip = [vdir[0] * L, vdir[1] * L, vdir[2] * L];
 
-        // 分量以向量形式画出（沿三个轴），并保留到 VEL 尖端的虚线以显示合成关系
-        var COLX = '#ff9f5e', COLY = '#58a6ff', COLZ = '#7ee787';
-        var comps = [
-          { v: [tip[0], 0, 0], c: COLX, n: 'X' },
-          { v: [0, tip[1], 0], c: COLY, n: 'Y' },
-          { v: [0, 0, tip[2]], c: COLZ, n: 'Z' }
+        var K3 = window.KZ || {};
+        var unit = (K3.speedUnit ? K3.speedUnit() : 'KM/H');
+        var vTot = (K3.speed ? K3.speed(spd) : spd);
+        var cxv = vTot * vdir[0], cyv = vTot * vdir[1], czv = vTot * vdir[2];
+
+        // 三个坐标平面上的投影分量：XOY / XOZ / YOZ
+        var PL = [
+          { v: [tip[0], tip[1], 0], c: '#7fd1ff', n: 'XOY', mag: Math.sqrt(cxv * cxv + cyv * cyv) },
+          { v: [tip[0], 0, tip[2]], c: '#ff9f5e', n: 'XOZ', mag: Math.sqrt(cxv * cxv + czv * czv) },
+          { v: [0, tip[1], tip[2]], c: '#7ee787', n: 'YOZ', mag: Math.sqrt(cyv * cyv + czv * czv) }
         ];
-        comps.forEach(function (cp) {
-          if (Math.abs(cp.v[0]) + Math.abs(cp.v[1]) + Math.abs(cp.v[2]) < 0.02) return;
-          seg([0, 0, 0], cp.v, cp.c, 2.2, null, velG);
-          headTo(cp.v, cp.c, velG, 7);
-          seg(cp.v, tip, cp.c, 1, '3 4', velG);
+        PL.forEach(function (pl) {
+          if (Math.abs(pl.v[0]) + Math.abs(pl.v[1]) + Math.abs(pl.v[2]) < 0.02) return;
+          seg([0, 0, 0], pl.v, pl.c, 2.2, null, velG);
+          headTo(pl.v, pl.c, velG, 7);
+          seg(pl.v, tip, pl.c, 1, '2 5', velG);            // 该平面投影到速度矢量的连线
         });
 
         // 主速度矢量
         seg([0, 0, 0], tip, '#ff5cd2', 2.6, null, velG);
         var B = headTo(tip, '#ff5cd2', velG);
 
-        var K3 = window.KZ || {};
-        var unit = (K3.speedUnit ? K3.speedUnit() : 'KM/H');
-        var vTot = K3.speed ? K3.speed(spd) : spd;
-        var cxv = vTot * vdir[0], cyv = vTot * vdir[1], czv = vTot * vdir[2];
-        function sg(n) { return (n >= 0 ? '+' : '\u2212') + Math.abs(Math.round(n)); }
-
-        // 三个分量各自的数值标签
-        var compVals = [
-          { v: [tip[0], 0, 0], c: COLX, t: 'X ' + sg(cxv) },
-          { v: [0, tip[1], 0], c: COLY, t: 'Y ' + sg(cyv) },
-          { v: [0, 0, tip[2]], c: COLZ, t: 'Z ' + sg(czv) }
-        ];
-        compVals.forEach(function (cv2, cidx) {
-          var P = pj(cv2.v);
-          if (!placeLabel(P[0] + 7, P[1] - 4, cv2.t, cv2.c, velG, 10)) {
-            // 分量很小（箭头几乎在原点）时，沿该轴方向外推再放标签，保证 XYZ 三个都可见
-            var u2 = [0, 0, 0];
-            var sgn = cv2.v[cidx] >= 0 ? 1 : -1;
-            u2[cidx] = sgn * 0.26;
+        // 三个平面分量的数值（该平面内的速度模）
+        PL.forEach(function (pl) {
+          var P = pj(pl.v);
+          var t2 = pl.n + ' ' + Math.round(pl.mag);
+          if (!placeLabel(P[0] + 8, P[1] - 5, t2, pl.c, velG, 10)) {
+            var u2 = [pl.v[0] * 1.25, pl.v[1] * 1.25, pl.v[2] * 1.25];
             var P2 = pj(u2);
-            placeLabel(P2[0] + 8, P2[1] - 6, cv2.t, cv2.c, velG, 10);
+            placeLabel(P2[0] + 9, P2[1] - 7, t2, pl.c, velG, 10);
           }
         });
 
