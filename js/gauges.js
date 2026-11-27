@@ -1485,15 +1485,15 @@
           var inside = P0[0] > M && P0[0] < 600 - M && P0[1] > M && P0[1] < VBH - M;
 
           if (inside) {
-            // 在量程内：画圆柱
-            ellipseOn(contactG, [bx, by, 0], 0.06, 0, col, 1.2, 'none');
-            ellipseOn(contactG, [bx, by, CH], 0.06, 0, col, 1.2, 'none');
-            seg([bx - 0.06, by, 0], [bx - 0.06, by, CH], col, 1.2, null, contactG);
-            seg([bx + 0.06, by, 0], [bx + 0.06, by, CH], col, 1.2, null, contactG);
+            // 量程内：从本机指向目标的箭头
+            seg([0, 0, 0], [bx, by, 0], col, cc.kind === 'MSL' ? 2.6 : 2.0, null, contactG);
+            headTo([bx, by, 0], col, contactG, 8);
+            // 末端一小段表示目标朝向
             var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
-            seg([bx, by, CH], [bx + Math.sin(dRel) * 0.16, by + Math.cos(dRel) * 0.16, CH], col, 2, null, contactG);
-            var top = pj([bx, by, CH]);
-            placeLabel(top[0] + 9, top[1] - 4, lb, col, contactG, 9);
+            var tl = 0.18;
+            seg([bx, by, 0], [bx + Math.sin(dRel) * tl, by + Math.cos(dRel) * tl, 0], col, 2.2, null, contactG);
+            var tipP = pj([bx, by, 0]);
+            placeLabel(tipP[0] + 10, tipP[1] + 4, lb, col, contactG, 9);
           } else {
             // 超出量程：贴边画一个朝外的三角 + 距离，表示"这个方向、更远"
             var cxS = 300, cyS = VBH / 2;
@@ -1510,6 +1510,11 @@
               (ex2 + rr2 * Math.cos(ang2 + 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 + 2.5)).toFixed(1) + ' ' +
               (ex2 + rr2 * Math.cos(ang2 - 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 - 2.5)).toFixed(1),
               fill: col, opacity: .95 }, contactG);
+            // 从本机到边缘的虚线（指向该方位）
+            var O0 = pj([0, 0, 0]);
+            el('line', { x1: O0[0].toFixed(1), y1: O0[1].toFixed(1),
+              x2: ex2.toFixed(1), y2: ey2.toFixed(1), stroke: col,
+              'stroke-width': 1.2, 'stroke-dasharray': '4 6', opacity: .65 }, contactG);
             placeLabel(ex2 + 10, ey2 + 4, lb, col, contactG, 9);
           }
         }
