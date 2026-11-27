@@ -1506,7 +1506,7 @@
               fill: col, stroke: '#0b1410', 'stroke-width': 1 }, contactG);
             placeLabel(Pc[0] + 8, Pc[1] - 5, lb, col, contactG, 9);
           } else {
-            // 超出量程：贴到「坐标轴最外圈（4 单位）」上，画朝外三角 + 真实距离
+            // 超出量程：贴到「坐标轴最外圈（4 单位）」上，画空心圆点 + 真实距离
             var dn2 = Math.sqrt(bx * bx + by * by) || 1;
             var bxr = bx / dn2 * 4.0, byr = by / dn2 * 4.0;
             var Pr = pj([bxr, byr, 0]);
@@ -1526,13 +1526,10 @@
               ex2 = cxS + vx2 * kk; ey2 = cyS + vy2 * kk;
               ang2 = Math.atan2(vy2, vx2);
             }
-            var rr2 = 7;
-            el('polygon', { points:
-              (ex2 + rr2 * Math.cos(ang2)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2)).toFixed(1) + ' ' +
-              (ex2 + rr2 * Math.cos(ang2 + 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 + 2.5)).toFixed(1) + ' ' +
-              (ex2 + rr2 * Math.cos(ang2 - 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 - 2.5)).toFixed(1),
-              fill: col, opacity: .95 }, contactG);
-            placeLabel(ex2 + 10, ey2 + 4, lb, col, contactG, 9);
+            // 圆点（不指示方向），带空心环表示"超出量程"
+            el('circle', { cx: ex2.toFixed(1), cy: ey2.toFixed(1), r: 3.0, fill: col, opacity: .55,
+              stroke: col, 'stroke-width': 1 }, contactG);
+            placeLabel(ex2 + 8, ey2 + 4, lb, col, contactG, 9);
           }
         }
 
