@@ -1548,6 +1548,10 @@
 
         /* 本机速度矢量 + 分量 */
         clear(velG);
+        if (spd < 30) {           // 低速/静止时 AoA/AoS 无意义，不画
+          lastSig = sig;
+          return;
+        }
         var aa = C.aoa * Math.PI / 180, ss = C.aos * Math.PI / 180;
         var vdir = [Math.sin(ss) * Math.cos(aa), Math.cos(ss) * Math.cos(aa), -Math.sin(aa)];
         var spd = Math.max(0, C.tas);

@@ -37,6 +37,7 @@
     maxThrust: 110,
     fAir: true, fGnd: true, fSur: true,
     rangeKm: 200,
+    autoRange: true,
     thrustAuto: true,
     layout: 'auto',
     units: 'metric',
@@ -365,6 +366,21 @@
     if (window.KZ) KZ.mapScale = mapScale;
   }
 
+  function autoPickRange(out) {
+    if (!settings.autoRange) return;
+    var maxD = 0;
+    for (var mi = 0; mi < out.length; mi++) if (out[mi].dist > maxD) maxD = out[mi].dist;
+    var opts = [15, 25, 50, 75, 100, 150, 200, 400];
+    var want = maxD > 0 ? maxD / 1000 * 1.25 : 15;
+    var pick2 = 400;
+    for (var oi = 0; oi < opts.length; oi++) { if (opts[oi] >= want) { pick2 = opts[oi]; break; } }
+    if (pick2 !== settings.rangeKm) {
+      settings.rangeKm = pick2;
+      if (window.KZ) KZ.rangeKm = pick2;
+      markSeg('setRange', 'auto', 'data-v');
+    }
+  }
+
   function applyMap(list) {
     if (!Array.isArray(list)) return;
 
@@ -511,6 +527,7 @@
                  icon: kk2 === 'GND' ? 'MediumTank' : (kk2 === 'SUR' ? 'Boat' : (kk2 === 'MSL' ? 'missile' : 'Fighter')),
                  dir: ((i * 47) + 30) % 360, est: false };
       });
+      autoPickRange(V.contacts);
     } else {
     V.contacts = [
       { brg: 20, dist: 3200, kind: 'AIR', icon: 'Fighter', dir: 30, est: false },
@@ -611,7 +628,7 @@
     markSeg('setSensor', settings.sensor || 'tgp', 'data-v');
     markSeg('setLayout', settings.layout || 'auto', 'data-v');
     markSeg('setModel3D', settings.view || 'axes', 'data-v');
-    markSeg('setRange', String(settings.rangeKm || 200), 'data-v');
+    markSeg('setRange', settings.autoRange ? 'auto' : String(settings.rangeKm || 200), 'data-v');
     if (window.KZ) KZ.rangeKm = settings.rangeKm || 200;
     ['fAir', 'fGnd', 'fSur'].forEach(function (k) {
       var v = (k === 'fAir') ? 'air' : (k === 'fGnd' ? 'gnd' : 'sur');
@@ -661,9 +678,15 @@
     $('setRange').addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('button') : null;
       if (!b || !b.dataset.v) return;
-      settings.rangeKm = parseInt(b.dataset.v, 10) || 200;
-      if (window.KZ) KZ.rangeKm = settings.rangeKm;
-      markSeg('setRange', b.dataset.v, 'data-v');
+      if (b.dataset.v === 'auto') {
+        settings.autoRange = true;
+        markSeg('setRange', 'auto', 'data-v');
+      } else {
+        settings.autoRange = false;
+        settings.rangeKm = parseInt(b.dataset.v, 10) || 200;
+        if (window.KZ) KZ.rangeKm = settings.rangeKm;
+        markSeg('setRange', b.dataset.v, 'data-v');
+      }
       saveSettings();
     });
     $('setFilter').addEventListener('click', function (e) {
