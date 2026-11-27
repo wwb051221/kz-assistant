@@ -19,7 +19,7 @@
       modelLocal: '本地文件…', modelBuiltin: '内置机模', mScope: '姿态球', mModel: '3D 模型', mAxes: '坐标系', resetView: '复位视角', resetModel: '重置模型', dragHint: '拖动旋转 · 滚轮缩放 · 双击复位',
 
       /* MFD */
-      att: '姿态', calc: '计算', energy: '能量', tactical: '态势', noContacts: '无敌情', legend: '图例', kMsl: '导弹', kAir: '飞机', kGnd: '地面', kSur: '水面', es: '比能量 H+V²/2g', ps: '剩余功率', turnR: '转弯率', radius: '转弯半径', thrust: '推力', accel: '加速度', endur: '续航', range: '航程', eng: '发动机', nav: '导航', data: '飞行数据',
+      att: '姿态', calc: '计算', energy: '能量', tactical: '态势', noContacts: '无敌情', legend: '图例', heading: '朝向', kMsl: '导弹', kAir: '飞机', kGnd: '地面', kSur: '水面', es: '比能量 H+V²/2g', ps: '剩余功率', turnR: '转弯率', radius: '转弯半径', thrust: '推力', accel: '加速度', endur: '续航', range: '航程', eng: '发动机', nav: '导航', data: '飞行数据',
       ias: '空速', alt: '高度', pitch: '俯仰', bank: '坡度', aoa: '迎角', g: '过载',
       mach: '马赫', vs: '垂直速度', trk: '航迹', fuel: '剩余燃油', aos: '侧滑',
       hdg: '磁航向', thr: '油门', oil: '油温', eng1: '左发', eng2: '右发', single: '单发',
@@ -38,7 +38,7 @@
       uiDark: 'Dark', uiLight: 'Light',
       modelLocal: 'Local file…', modelBuiltin: 'Built-in', mScope: 'Attitude ball', mModel: '3D model', mAxes: 'Coord frame', resetView: 'Reset view', resetModel: 'Reset model', dragHint: 'Drag to orbit · wheel to zoom · dbl-click to reset',
 
-      att: 'ATTITUDE', calc: 'CALC', energy: 'ENERGY', tactical: 'CONTACTS', noContacts: 'NO CONTACTS', legend: 'LEGEND', kMsl: 'MISSILE', kAir: 'AIRCRAFT', kGnd: 'GROUND', kSur: 'SURFACE', es: 'SPEC ENERGY H+V²/2g', ps: 'EXCESS POWER', turnR: 'TURN RATE', radius: 'TURN RADIUS', thrust: 'THRUST', accel: 'ACCEL', endur: 'ENDURANCE', range: 'RANGE', eng: 'ENGINE', nav: 'NAV', data: 'FLIGHT DATA',
+      att: 'ATTITUDE', calc: 'CALC', energy: 'ENERGY', tactical: 'CONTACTS', noContacts: 'NO CONTACTS', legend: 'LEGEND', heading: 'HEADING', kMsl: 'MISSILE', kAir: 'AIRCRAFT', kGnd: 'GROUND', kSur: 'SURFACE', es: 'SPEC ENERGY H+V²/2g', ps: 'EXCESS POWER', turnR: 'TURN RATE', radius: 'TURN RADIUS', thrust: 'THRUST', accel: 'ACCEL', endur: 'ENDURANCE', range: 'RANGE', eng: 'ENGINE', nav: 'NAV', data: 'FLIGHT DATA',
       ias: 'IAS', alt: 'ALT', pitch: 'PITCH', bank: 'BANK', aoa: 'AOA', g: 'G',
       mach: 'MACH', vs: 'V/S', trk: 'TRK', fuel: 'FUEL', aos: 'AOS',
       hdg: 'HDG', thr: 'THR', oil: 'OIL', eng1: 'ENG 1', eng2: 'ENG 2', single: 'SINGLE',
@@ -57,7 +57,7 @@
       uiDark: 'Тёмная', uiLight: 'Светлая',
       modelLocal: 'Файл…', modelBuiltin: 'Встроенная', mScope: 'Авиагоризонт', mModel: '3D модель', mAxes: 'Оси', resetView: 'Сброс вида', resetModel: 'Сброс модели', dragHint: 'Тянуть — вращение · колесо — зум · двойной клик — сброс',
 
-      att: 'ТАНГАЖ', calc: 'РАСЧЁТ', energy: 'ЭНЕРГИЯ', tactical: 'ОБСТАНОВКА', noContacts: 'НЕТ ЦЕЛЕЙ', legend: 'ЛЕГЕНДА', kMsl: 'РАКЕТА', kAir: 'САМОЛЁТ', kGnd: 'ЗЕМЛЯ', kSur: 'КОРАБЛЬ', es: 'ЭНЕРГИЯ H+V²/2g', ps: 'МОЩНОСТЬ', turnR: 'ВИРАЖ', radius: 'РАДИУС', thrust: 'ТЯГА', accel: 'УСКОР', endur: 'ВРЕМЯ', range: 'ДАЛЬН', eng: 'ДВИГАТЕЛИ', nav: 'НАВИГАЦИЯ', data: 'ПОЛЁТ',
+      att: 'ТАНГАЖ', calc: 'РАСЧЁТ', energy: 'ЭНЕРГИЯ', tactical: 'ОБСТАНОВКА', noContacts: 'НЕТ ЦЕЛЕЙ', legend: 'ЛЕГЕНДА', heading: 'КУРС', kMsl: 'РАКЕТА', kAir: 'САМОЛЁТ', kGnd: 'ЗЕМЛЯ', kSur: 'КОРАБЛЬ', es: 'ЭНЕРГИЯ H+V²/2g', ps: 'МОЩНОСТЬ', turnR: 'ВИРАЖ', radius: 'РАДИУС', thrust: 'ТЯГА', accel: 'УСКОР', endur: 'ВРЕМЯ', range: 'ДАЛЬН', eng: 'ДВИГАТЕЛИ', nav: 'НАВИГАЦИЯ', data: 'ПОЛЁТ',
       ias: 'СКОРОСТЬ', alt: 'ВЫСОТА', pitch: 'ТАНГАЖ', bank: 'КРЕН', aoa: 'УА', g: 'ПЕРЕГР',
       mach: 'ЧИСЛО М', vs: 'ВАР', trk: 'ПУТЬ', fuel: 'ТОПЛИВО', aos: 'СКОЛЬЖ',
       hdg: 'КУРС', thr: 'РУД', oil: 'МАСЛО', eng1: 'ЛЕВ', eng2: 'ПРАВ', single: 'ОДИН',

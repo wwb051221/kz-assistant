@@ -1256,7 +1256,7 @@
     ];
     var legName = { MSL: T('kMsl'), AIR: T('kAir'), GND: T('kGnd'), SUR: T('kSur') };
     el('text', { x: 22, y: 486, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, svg)
-      .textContent = T('legend') + '  \u00b7  5 / 10 km';
+      .textContent = T('legend') + '  \u00b7  5 / 10 km  \u00b7  ' + '\u2192 ' + T('heading');
     LEG.forEach(function (it, i) {
       var y = 508 + i * 20;
       el('circle', { cx: 28, cy: y - 4, r: 4, fill: it[0] }, svg);
@@ -1305,19 +1305,43 @@
 
         // （世界轴已按需求隐藏，只保留机体轴与速度矢量）
 
-        // 敌情：按方位/距离放到机体系地面平面上
+        // 敌情：在机体水平面（XY）上画“朝向线段”，起点为目标位置
         clear(contactG);
-        var cs = (arguments.length > 1 && arguments[1] && arguments[1].contacts) ? arguments[1].contacts : [];
+        var cs = (V && V.contacts) ? V.contacts : [];
         for (var ci = 0; ci < cs.length; ci++) {
           var cc = cs[ci];
-          var d = Math.min(3, cc.dist / 1000 / 5);        // 5 km = 1 单位，超出 15 km 贴边
+          var d = Math.min(3, cc.dist / 1000 / 5);          // 5 km = 1 单位，>15km 贴边
           var dlt = (cc.brg - C.hdg) * Math.PI / 180;
           var bx = d * Math.sin(dlt), by = d * Math.cos(dlt);
-          var P = pj([bx, by, 0]);
+
+          // 目标朝向 → 机体系方向
+          var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
+          var L = 0.36;                                      // 线段长度（约 1.8 km 视觉长度）
+          var ex = bx + Math.sin(dRel) * L;
+          var ey = by + Math.cos(dRel) * L;
+
           var col = cc.kind === 'MSL' ? '#ff5cd2' : (cc.kind === 'AIR' ? '#ff6b5e' : (cc.kind === 'GND' ? '#d8a95c' : '#7fd1ff'));
-          el('circle', { cx: P[0].toFixed(1), cy: P[1].toFixed(1), r: cc.kind === 'MSL' ? 4.5 : 3.6,
-            fill: col, stroke: '#0b1410', 'stroke-width': 1 }, contactG);
-          el('text', { x: (P[0] + 7).toFixed(1), y: (P[1] + 3).toFixed(1), 'font-size': 9,
+          var A = pj([bx, by, 0]), B2 = pj([ex, ey, 0]);
+
+          // 朝向线段（XY 平面内）
+          el('line', { x1: A[0].toFixed(1), y1: A[1].toFixed(1), x2: B2[0].toFixed(1), y2: B2[1].toFixed(1),
+            stroke: col, 'stroke-width': cc.kind === 'MSL' ? 2.8 : 2.2, 'stroke-linecap': 'round' }, contactG);
+
+          // 起点小方点（目标位置）
+          el('rect', { x: (A[0] - 1.8).toFixed(1), y: (A[1] - 1.8).toFixed(1), width: 3.6, height: 3.6,
+            fill: col }, contactG);
+
+          // 箭头尖端
+          var angs = Math.atan2(B2[1] - A[1], B2[0] - A[0]);
+          var hs = 6;
+          el('polygon', { points:
+            B2[0].toFixed(1) + ',' + B2[1].toFixed(1) + ' ' +
+            (B2[0] - hs * Math.cos(angs - 0.45)).toFixed(1) + ',' + (B2[1] - hs * Math.sin(angs - 0.45)).toFixed(1) + ' ' +
+            (B2[0] - hs * Math.cos(angs + 0.45)).toFixed(1) + ',' + (B2[1] - hs * Math.sin(angs + 0.45)).toFixed(1),
+            fill: col }, contactG);
+
+          // 距离标签
+          el('text', { x: (B2[0] + 6).toFixed(1), y: (B2[1] + 3).toFixed(1), 'font-size': 9,
             'font-family': 'WT Mono, Consolas, monospace', fill: col }, contactG)
             .textContent = cc.dist > 1000 ? (cc.dist / 1000).toFixed(0) + 'km' : Math.round(cc.dist) + 'm';
         }

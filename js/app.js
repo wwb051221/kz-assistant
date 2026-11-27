@@ -295,7 +295,11 @@
       else if (/missile/i.test(String(o.type || ''))) kind = 'MSL';
       else if (o.type === 'ground_model') kind = 'GND';
       else if (o.type !== 'aircraft') kind = 'SUR';
-      out.push({ brg: brg, dist: dist, kind: kind, icon: o.icon || '', type: o.type });
+      var dir = 0;
+      if (typeof o.dx === 'number' && typeof o.dy === 'number' && (o.dx || o.dy)) {
+        dir = ((Math.atan2(o.dx, o.dy) * 180 / Math.PI) + 360) % 360;
+      }
+      out.push({ brg: brg, dist: dist, kind: kind, icon: o.icon || '', type: o.type, dir: dir });
     }
     var PRI = { MSL: 0, AIR: 1, GND: 2, SUR: 3 };
     out.sort(function (a, b) {

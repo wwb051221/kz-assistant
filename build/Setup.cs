@@ -12,7 +12,7 @@ static class Setup
 {
     // 注意：不要用 Name 作常量名，会被 Windows.Forms.Control.Name 遮蔽
     const string AppName = "空战助手";
-    const string Version = "1.0.2";
+    const string Version = "1.0.3";
     const string RegPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\空战助手";
 
     [STAThread]
