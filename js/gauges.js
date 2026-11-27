@@ -1191,7 +1191,11 @@
       svg.setAttribute('viewBox', '0 0 600 ' + VBH.toFixed(0));
       cx = 300;
       cy = VBH * 0.50;                 // 垂直居中
-      U = Math.max(70, Math.min(112, Math.min(600, VBH) * 0.155));  // 1 单位 = 50 km，轴长 4 单位
+      // 让 4 单位的立方体在水平/垂直方向都能完整入画（斜二测下最大水平投影 ≈ L(1+OK)）
+      var maxExt = 4 * (1 + OK);
+      var uH = (600 / 2 - 14) / maxExt;
+      var uV = (VBH / 2 - 14) / maxExt;
+      U = Math.max(40, Math.min(uH, uV));
       drawStatic();
       dirty = true;
     }
@@ -1482,16 +1486,29 @@
 
           var P0 = pj([bx, by, 0]);
           var M = 14;
-          var inside = P0[0] > M && P0[0] < 600 - M && P0[1] > M && P0[1] < VBH - M;
+          // 超过量程（d > 4 单位）一律贴边；另外投影跑出画面也贴边
+          var inScreen = P0[0] > M && P0[0] < 600 - M && P0[1] > M && P0[1] < VBH - M;
+          var inside = (d <= 4.05) && inScreen;
 
           if (inside) {
-            // 目标：在它自己的位置上画一个小箭头（指示它的机头方向），不从本机连线
+            // 目标：单一等腰三角形，尖头表示目标的机头方向
             var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
-            var L2 = 0.22;
-            el('circle', { cx: P0[0].toFixed(1), cy: P0[1].toFixed(1), r: 2.4, fill: col }, contactG);
-            seg([bx, by, 0], [bx + Math.sin(dRel) * L2, by + Math.cos(dRel) * L2, 0], col, 2.2, null, contactG);
-            headTo([bx + Math.sin(dRel) * L2, by + Math.cos(dRel) * L2, 0], col, contactG, 6);
-            placeLabel(P0[0] + 8, P0[1] - 6, lb, col, contactG, 9);
+            var pTail = pj([bx - Math.sin(dRel) * 0.02, by - Math.cos(dRel) * 0.02, 0]);
+            var pTip = pj([bx + Math.sin(dRel) * 0.02, by + Math.cos(dRel) * 0.02, 0]);
+            var angS = Math.atan2(pTip[1] - pTail[1], pTip[0] - pTail[0]);
+            var Pc = pj([bx, by, 0]);
+            var TL = 9, TW = 5;                  // 长/半宽（像素）
+            var apex = [Pc[0] + Math.cos(angS) * TL, Pc[1] + Math.sin(angS) * TL];
+            var b1 = [Pc[0] - Math.cos(angS) * TL * 0.55 + Math.cos(angS + Math.PI / 2) * TW,
+                      Pc[1] - Math.sin(angS) * TL * 0.55 + Math.sin(angS + Math.PI / 2) * TW];
+            var b2 = [Pc[0] - Math.cos(angS) * TL * 0.55 - Math.cos(angS + Math.PI / 2) * TW,
+                      Pc[1] - Math.sin(angS) * TL * 0.55 - Math.sin(angS + Math.PI / 2) * TW];
+            el('polygon', { points:
+              apex[0].toFixed(1) + ',' + apex[1].toFixed(1) + ' ' +
+              b1[0].toFixed(1) + ',' + b1[1].toFixed(1) + ' ' +
+              b2[0].toFixed(1) + ',' + b2[1].toFixed(1),
+              fill: col, stroke: '#0b1410', 'stroke-width': 1 }, contactG);
+            placeLabel(Pc[0] + 11, Pc[1] - 6, lb, col, contactG, 9);
           } else {
             // 超出量程：贴边画朝外三角（不连线），标注真实距离
             var cxS = 300, cyS = VBH / 2;
