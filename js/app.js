@@ -35,7 +35,7 @@
     showModel: false,
     view: 'axes',
     maxThrust: 110,
-    fAir: true, fGnd: false, fSur: false,
+    fAir: true, fGnd: true, fSur: true,
     rangeKm: 200,
     thrustAuto: true,
     layout: 'auto',
@@ -399,13 +399,21 @@
       var dist = Math.sqrt(dxm * dxm + dym * dym);
       // 注意：地图 y 轴向下，与罗盘航向差 180°，必须用 -dym（与 TRK 同约定）
       var brg = convAngle(mapAngle(dxm, dym));
+      // 先按图标判定类别（比 type 可靠），再退回 type
+      var ic0 = String(o.icon || '');
+      var ty0 = String(o.type || '');
       var kind = 'AIR';
+      if (/ship|boat|frigate|destroyer|cruiser|submarine|carrier|landing/i.test(ic0)) kind = 'SUR';
+      else if (/tank|spaa|sam\b|artillery|pillow|pillbox|aaa|howitzer|truck|car\b|ifv|apc|machine_gun/i.test(ic0)) kind = 'GND';
+      else if (/fighter|bomber|attack|assault|interceptor|uav|heli|torpedo/i.test(ic0)) kind = 'AIR';
+      else if (/missile|bomb/i.test(ic0) && !/destroyer|frigate|boat|ship/i.test(ic0)) kind = 'MSL';
       var ic = String(o.icon || '');
       // 导弹要排除 MissileDestroyer（那是军舰）
       if (/^missile/i.test(ic) && !/destroyer|frigate|boat|ship/i.test(ic)) kind = 'MSL';
       else if (/missile/i.test(String(o.type || ''))) kind = 'MSL';
-      else if (o.type === 'ground_model') kind = 'GND';
-      else if (o.type !== 'aircraft') kind = 'SUR';
+      else if (ty0 === 'ground_model') kind = 'GND';
+      else if (ty0 === 'ship_model' || ty0 === 'ship') kind = 'SUR';
+      else if (ty0 === 'airfield' || ty0 === 'bombing_point' || ty0 === 'defending_point') kind = 'GND';
       var dir = 0;
       if (typeof o.dx === 'number' && typeof o.dy === 'number' && (o.dx || o.dy)) {
         dir = convAngle(mapAngle(o.dx, o.dy));
@@ -497,8 +505,11 @@
     var _cq = (qs.get('contacts') || '').split(',').filter(function (x) { return x !== ''; });
     if (_cq.length) {
       V.contacts = _cq.map(function (v, i) {
-        return { brg: (i * 47) % 360, dist: (parseFloat(v) || 5) * 1000, kind: i % 3 === 0 ? 'MSL' : 'AIR',
-                 icon: 'Fighter', dir: ((i * 47) + 30) % 360, est: false };
+        var kinds = ['AIR', 'GND', 'SUR', 'AIR', 'GND', 'MSL'];
+        var kk2 = kinds[i % kinds.length];
+        return { brg: (i * 47) % 360, dist: (parseFloat(v) || 5) * 1000, kind: kk2,
+                 icon: kk2 === 'GND' ? 'MediumTank' : (kk2 === 'SUR' ? 'Boat' : (kk2 === 'MSL' ? 'missile' : 'Fighter')),
+                 dir: ((i * 47) + 30) % 360, est: false };
       });
     } else {
     V.contacts = [

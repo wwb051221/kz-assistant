@@ -29,6 +29,27 @@
 - 使用前请自行确认是否符合 Gaijin 的用户协议与当地法律
 # 空战助手 v1.0.1 测试版
 
+## v1.4.8 修复：地面 / 水面目标不显示
+
+**两个原因：**
+
+1. **默认过滤关掉了它们**：`fGnd:false`、`fSur:false`，所以地面和水面目标被滤掉。
+   → 默认改为三种全开（`fAir/fGnd/fSur` 都是 true）。
+2. **分类只用 `type` 判断**：`type==='ground_model'` 才算地面，其余非 aircraft 全算水面。
+   而实际接口里地面单位（Artillery / Pillbox / SPAA / MediumTank…）的 `type` 并不总是 `ground_model`，
+   于是被误判成"水面"或"飞机"。
+
+**新分类顺序（先 icon，后 type）：**
+
+| 顺序 | 规则 | 结果 |
+|---|---|---|
+| 1 | icon 含 ship/boat/frigate/destroyer/cruiser/submarine/carrier | SUR |
+| 2 | icon 含 tank/spaa/sam/artillery/pillbox/aaa/howitzer/truck/ifv/apc | GND |
+| 3 | icon 含 fighter/bomber/attack/interceptor/uav/heli | AIR |
+| 4 | icon 含 missile/bomb（且非舰船） | MSL |
+| 5 | type = ground_model / ship_model / airfield / bombing_point | GND / SUR / GND |
+
+实测（mock 六目标分别 AIR/GND/SUR）：四种颜色全部出现（红/琥珀/蓝/品红），态势表分类正确。
 ## v1.4.7 修复：超出量程的目标
 
 | 问题 | 原因 | 修复 |
@@ -777,6 +798,27 @@ Get-FileHash .\空战助手.exe -Algorithm SHA256
 
 > 说明：3D 视图仍保留「拖动旋转 / 滚轮缩放 / 双击复位」，坐标系就是在这个自由视角里转的。
 > 想换回机模：设置 →「3D 机模」→ 仍可加载自定义 glTF，会替换坐标系显示。
+## v1.4.8 修复：地面 / 水面目标不显示
+
+**两个原因：**
+
+1. **默认过滤关掉了它们**：`fGnd:false`、`fSur:false`，所以地面和水面目标被滤掉。
+   → 默认改为三种全开（`fAir/fGnd/fSur` 都是 true）。
+2. **分类只用 `type` 判断**：`type==='ground_model'` 才算地面，其余非 aircraft 全算水面。
+   而实际接口里地面单位（Artillery / Pillbox / SPAA / MediumTank…）的 `type` 并不总是 `ground_model`，
+   于是被误判成"水面"或"飞机"。
+
+**新分类顺序（先 icon，后 type）：**
+
+| 顺序 | 规则 | 结果 |
+|---|---|---|
+| 1 | icon 含 ship/boat/frigate/destroyer/cruiser/submarine/carrier | SUR |
+| 2 | icon 含 tank/spaa/sam/artillery/pillbox/aaa/howitzer/truck/ifv/apc | GND |
+| 3 | icon 含 fighter/bomber/attack/interceptor/uav/heli | AIR |
+| 4 | icon 含 missile/bomb（且非舰船） | MSL |
+| 5 | type = ground_model / ship_model / airfield / bombing_point | GND / SUR / GND |
+
+实测（mock 六目标分别 AIR/GND/SUR）：四种颜色全部出现（红/琥珀/蓝/品红），态势表分类正确。
 ## v1.4.7 修复：超出量程的目标
 
 | 问题 | 原因 | 修复 |
@@ -1185,6 +1227,27 @@ Z（机体上方） = −V · sin(α)
 | **自由视角** | 3D 模型视图支持**拖动旋转**（360° 环视）、**滚轮缩放**（0.45×–3×）、**双击复位**；带阻尼插值，不平滑跳变 |
 | **复位入口** | 设置 →「3D 机模」下新增 **复位视角** / **重置模型**（朝向、大小归位） |
 | **交互优化** | 画布 `grab/grabbing` 光标、触摸屏可拖、相机不会翻到地面以下（俯仰角钳制）、小飞机模式下跳过 3D 渲染省 GPU |
+## v1.4.8 修复：地面 / 水面目标不显示
+
+**两个原因：**
+
+1. **默认过滤关掉了它们**：`fGnd:false`、`fSur:false`，所以地面和水面目标被滤掉。
+   → 默认改为三种全开（`fAir/fGnd/fSur` 都是 true）。
+2. **分类只用 `type` 判断**：`type==='ground_model'` 才算地面，其余非 aircraft 全算水面。
+   而实际接口里地面单位（Artillery / Pillbox / SPAA / MediumTank…）的 `type` 并不总是 `ground_model`，
+   于是被误判成"水面"或"飞机"。
+
+**新分类顺序（先 icon，后 type）：**
+
+| 顺序 | 规则 | 结果 |
+|---|---|---|
+| 1 | icon 含 ship/boat/frigate/destroyer/cruiser/submarine/carrier | SUR |
+| 2 | icon 含 tank/spaa/sam/artillery/pillbox/aaa/howitzer/truck/ifv/apc | GND |
+| 3 | icon 含 fighter/bomber/attack/interceptor/uav/heli | AIR |
+| 4 | icon 含 missile/bomb（且非舰船） | MSL |
+| 5 | type = ground_model / ship_model / airfield / bombing_point | GND / SUR / GND |
+
+实测（mock 六目标分别 AIR/GND/SUR）：四种颜色全部出现（红/琥珀/蓝/品红），态势表分类正确。
 ## v1.4.7 修复：超出量程的目标
 
 | 问题 | 原因 | 修复 |
@@ -1603,6 +1666,27 @@ Z（机体上方） = −V · sin(α)
 | **导航改球形** | 罗盘换成**球面经纬网**（网格随航向转），刻度数字**保持水平**并沿圆周重排 |
 | **右侧改小飞机仪表** | 默认不再显示 3D 机模，改成**姿态球 + 小飞机符号 + 外圈坐标轴**：顶部 `HDG`、右侧 `TRK`（速度矢量航向）、左下升降率，品红圆点是**速度矢量**（按迎角/侧滑偏移） |
 | **3D 模型入口保留** | 设置 →「3D 机模」里可切回 `3D 模型`；自定义 glTF 导入/机模下拉照旧可用。切到小飞机模式时不再渲染 3D，省 GPU |
+## v1.4.8 修复：地面 / 水面目标不显示
+
+**两个原因：**
+
+1. **默认过滤关掉了它们**：`fGnd:false`、`fSur:false`，所以地面和水面目标被滤掉。
+   → 默认改为三种全开（`fAir/fGnd/fSur` 都是 true）。
+2. **分类只用 `type` 判断**：`type==='ground_model'` 才算地面，其余非 aircraft 全算水面。
+   而实际接口里地面单位（Artillery / Pillbox / SPAA / MediumTank…）的 `type` 并不总是 `ground_model`，
+   于是被误判成"水面"或"飞机"。
+
+**新分类顺序（先 icon，后 type）：**
+
+| 顺序 | 规则 | 结果 |
+|---|---|---|
+| 1 | icon 含 ship/boat/frigate/destroyer/cruiser/submarine/carrier | SUR |
+| 2 | icon 含 tank/spaa/sam/artillery/pillbox/aaa/howitzer/truck/ifv/apc | GND |
+| 3 | icon 含 fighter/bomber/attack/interceptor/uav/heli | AIR |
+| 4 | icon 含 missile/bomb（且非舰船） | MSL |
+| 5 | type = ground_model / ship_model / airfield / bombing_point | GND / SUR / GND |
+
+实测（mock 六目标分别 AIR/GND/SUR）：四种颜色全部出现（红/琥珀/蓝/品红），态势表分类正确。
 ## v1.4.7 修复：超出量程的目标
 
 | 问题 | 原因 | 修复 |
@@ -2191,6 +2275,7 @@ esircraftsir.grp"` 能看到所有机体名。
 ## 合规
 
 只读 `localhost:8111`；官方论坛口径一般允许，但不作保证。不显示敌人位置、不改游戏。
+
 
 
 
