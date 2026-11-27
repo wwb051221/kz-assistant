@@ -1007,9 +1007,14 @@
         cRad.textContent = (C.tas < 5) ? '---' : (K2.radius > 0 ? Math.round(K2.radius) + ' m' : '\u221e');
         cThr.textContent = thrust + ' kN';
         cAcc.textContent = (K2.accel >= 0 ? '+' : '') + K2.accel.toFixed(1) + ' m/s\u00b2';
-        var pre = K2.est ? '~' : '';
-        cEnd.textContent = K2.endur > 0 ? pre + K2.endur.toFixed(1) + ' min' : '---';
-        cRng.textContent = K2.range > 0 ? pre + Math.round(K2.range) + ' km' : '---';
+        if (K2.endur > 0) {
+          cEnd.textContent = K2.endur.toFixed(1) + ' min';
+          cRng.textContent = Math.round(K2.range) + ' km';
+        } else {
+          var measuring = (C.fuel > 1) ? T('measuring') : '---';
+          cEnd.textContent = measuring;
+          cRng.textContent = measuring;
+        }
 
         /* --- 态势 --- */
         var cs = (V && V.contacts) ? V.contacts : [];

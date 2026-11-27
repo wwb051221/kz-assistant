@@ -69,23 +69,57 @@
   var C = JSON.parse(JSON.stringify(V));
 
   /* ---------- 派生计算（全部基于 8111 公开数据） ---------- */
-  var calc = { es: 0, ps: 0, omega: 0, radius: 0, accel: 0, burn: 0, endur: 0, range: 0, thrust: 0 };
+  var calc = { es: 0, ps: 0, omega: 0, radius: 0, accel: 0, burn: 0, endur: 0, range: 0, thrust: 0, est: false };
   var calcPrev = null;
   var G0 = 9.80665;
 
-  function updateCalc(C) {
-    var v = C.tas / 3.6;                      // m/s
-    var es = C.alt + (v * v) / (2 * G0);      // 比能量 (m)
+  /* ---------- 剩余油量对时间求导（最小二乘）----------
+     用原始油量采样，不做平滑，避免滞后；窗口 4~20 秒 */
+  var fuelHist = [];
+  var lastFuelPush = 0;
+
+  function pushFuel(now, f) {
+    if (!(f > 1)) return;
+    if (now - lastFuelPush < 250) return;
+    lastFuelPush = now;
+    fuelHist.push({ t: now, f: f });
+    while (fuelHist.length && now - fuelHist[0].t > 20000) fuelHist.shift();
+    if (fuelHist.length > 90) fuelHist.shift();
+  }
+
+  function fuelRate() {
+    var n = fuelHist.length;
+    if (n < 4) return 0;
+    var t0 = fuelHist[0].t;
+    var span = (fuelHist[n - 1].t - t0) / 1000;
+    if (span < 4) return 0;                       // 至少 4 秒跨度
+
+    var sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (var i = 0; i < n; i++) {
+      var x = (fuelHist[i].t - t0) / 1000;
+      var y = fuelHist[i].f;
+      sx += x; sy += y; sxx += x * x; sxy += x * y;
+    }
+    var den = n * sxx - sx * sx;
+    if (Math.abs(den) < 1e-6) return 0;
+    var slope = (n * sxy - sx * sy) / den;        // kg/s（负值=在减少）
+    var rate = -slope * 60;                       // kg/min（正值=消耗）
+    if (rate < 0.02) return 0;                    // 基本没消耗
+    return rate;
+  }
+
+  function updateCalc(C, V) {
+    var v = C.tas / 3.6;                          // m/s
+    var es = C.alt + (v * v) / (2 * G0);          // 比能量 (m)
     var n = Math.max(0.05, C.g);
 
-    // 转弯率 / 半径
     var q = Math.sqrt(Math.max(0, n * n - 1));
-    calc.omega = (G0 * q / Math.max(5, v)) * 57.29578;   // °/s
-    calc.radius = q > 0.01 ? (v * v) / (G0 * q) : 0;      // m
+    calc.omega = (G0 * q / Math.max(5, v)) * 57.29578;
+    calc.radius = q > 0.01 ? (v * v) / (G0 * q) : 0;
 
     var now = performance.now();
     if (!calcPrev) {
-      calcPrev = { t: now, v: v, es: es, fuel: C.fuel };
+      calcPrev = { t: now, v: v, es: es };
     } else {
       var dt = (now - calcPrev.t) / 1000;
       if (dt >= 0.25 && dt < 6) {
@@ -93,16 +127,7 @@
         calc.accel = calc.accel * 0.55 + accel * 0.45;
         var psNew = (es - calcPrev.es) / dt;
         calc.ps = calc.ps * 0.55 + psNew * 0.45;
-        var dm = calcPrev.fuel - C.fuel;
-        if (dm < -50) {
-          calc.burn = 0;                               // 加油/换机：重置
-        } else if (C.fuel > 5 && dm >= 0) {
-          var b = dm / dt * 60;                        // kg/min
-          // 物理限幅：单台 0~120 kg/min，最多 8 台
-          var cap = 120 * Math.max(1, Math.min(8, C.engCount || 1));
-          if (b <= cap) calc.burn = calc.burn > 0 ? calc.burn * 0.8 + b * 0.2 : b;
-        }
-        calcPrev = { t: now, v: v, es: es, fuel: C.fuel };
+        calcPrev = { t: now, v: v, es: es };
       }
     }
 
@@ -112,16 +137,15 @@
     var engN = Math.max(1, Math.min(8, C.engCount || 1));
     calc.thrust = Math.round(thr / 100 * MT * (thr > 100.5 ? 1.15 : 1));
 
-    // 油耗：优先用 Mfuel 实测；测不到时按「油门 × 台数」估
-    var burnUse = calc.burn;
+    // 油量求导（用未平滑的原始值，避免滞后）→ 续航 / 航程
+    var fuelRaw = (V && typeof V.fuel === 'number') ? V.fuel : C.fuel;
+    pushFuel(now, fuelRaw);
+    calc.burn = fuelRate();
     calc.est = false;
-    if (!(burnUse > 0.05)) {
-      burnUse = (thr / 100) * 2.1 * engN;          // kg/min 粗估：100% 油门单发约 2.1 kg/min
-      calc.est = true;
-    }
-    calc.endur = burnUse > 0.05 && C.fuel > 1 ? (C.fuel / burnUse) : 0;   // min
-    calc.range = calc.endur / 60 * C.tas;                                  // km
-    calc.fuel = C.fuel; calc.engN = engN;
+    calc.endur = (calc.burn > 0.02 && fuelRaw > 1) ? (fuelRaw / calc.burn) : 0;
+    calc.range = calc.endur > 0 ? (calc.endur / 60 * C.tas) : 0;
+
+    calc.fuel = fuelRaw; calc.engN = engN;
     if (window.KZ) KZ.calc = calc;
   }
 
@@ -725,7 +749,7 @@
     var dh = wrap180(V.hdg - C.hdg);
     C.hdg = (C.hdg + dh * (1 - Math.exp(-dt / 0.16)) + 360) % 360;
 
-    updateCalc(C);
+    updateCalc(C, V);
     var view = settings.view || 'axes';
     if (view === 'model') Attitude3D.set(C.pitch, C.roll, C.hdg, C.aoa, C.aos);
     if (view === 'scope' && attScope) attScope.set(C, V);
