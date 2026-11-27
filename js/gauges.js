@@ -1282,6 +1282,9 @@
     var convTxt = el('text', { x: 18, y: 560, 'font-size': 10,
       'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, svg);
     convTxt.textContent = '';
+    var angTxt = el('text', { x: 18, y: 46, 'font-size': 11,
+      'font-family': 'WT Mono, Consolas, monospace', fill: '#8fa39a' }, svg);
+    angTxt.textContent = '';
     function clear(g) { while (g.firstChild) g.removeChild(g.firstChild); }
 
     /* ---------------- 静态层（视角变化时重绘） ---------------- */
@@ -1556,6 +1559,13 @@
         var vdir = [Math.sin(ss) * Math.cos(aa), Math.cos(ss) * Math.cos(aa), -Math.sin(aa)];
         var spd = Math.max(0, C.tas);
         var L = Math.max(0.55, Math.min(2.9, spd / 380));
+
+        // 速度矢量与机体三轴的夹角（∠VX / ∠VY / ∠VZ）
+        function angDeg(c) { var v2 = Math.max(-1, Math.min(1, c)); return Math.acos(v2) * 180 / Math.PI; }
+        angTxt.textContent = spd >= 30
+          ? '\u2220X ' + angDeg(vdir[0]).toFixed(1) + '\u00b0   \u2220Y ' + angDeg(vdir[1]).toFixed(1) +
+            '\u00b0   \u2220Z ' + angDeg(vdir[2]).toFixed(1) + '\u00b0'
+          : '';
         var tip = [vdir[0] * L, vdir[1] * L, vdir[2] * L];
 
         var K3 = window.KZ || {};
