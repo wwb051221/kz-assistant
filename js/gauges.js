@@ -1181,9 +1181,12 @@
     var svg = el('svg', { viewBox: '0 0 600 600', preserveAspectRatio: 'xMidYMid meet' }, host);
     svg.style.cursor = 'grab';
 
-    function applyViewBox() {
+    var lastRW = 0, lastRH = 0;
+    function applyViewBox(force) {
       var r = svg.getBoundingClientRect();
       if (!r.width || !r.height) return;
+      if (!force && Math.abs(r.width - lastRW) < 3 && Math.abs(r.height - lastRH) < 3) return;
+      lastRW = r.width; lastRH = r.height;
       VBH = Math.max(560, Math.min(1800, 600 * r.height / r.width));
       svg.setAttribute('viewBox', '0 0 600 ' + VBH.toFixed(0));
       cx = 300;
@@ -1199,10 +1202,11 @@
 
     // 机体系 -> 屏幕（先按视角旋转，再做斜二测投影）
     function pj(v) {
-      var cy = Math.cos(view.yaw), sy = Math.sin(view.yaw);
+      // 注意：这里不能用 cy/sy 命名（会遮蔽外层画布中心 cy）
+      var cw = Math.cos(view.yaw), sw = Math.sin(view.yaw);
       var ce = Math.cos(view.elev), se = Math.sin(view.elev);
-      var x1 = v[0] * cy - v[1] * sy;
-      var y1 = v[0] * sy + v[1] * cy;
+      var x1 = v[0] * cw - v[1] * sw;
+      var y1 = v[0] * sw + v[1] * cw;
       var z1 = v[2];
       var y2 = y1 * ce - z1 * se;
       var z2 = y1 * se + z1 * ce;
@@ -1247,6 +1251,11 @@
     }
 
     var staticG = el('g', null, svg);
+    var staticBoxes = [];                       // 静态标签占位（给动态标签避让用）
+    function regBox(x, y, text, size) {
+      var w = text.length * size * 0.62, h = size * 1.25;
+      staticBoxes.push({ x: x, y: y - h * 0.8, w: w, h: h });
+    }
     var contactG = el('g', null, svg);
     var velG = el('g', null, svg);
     function clear(g) { while (g.firstChild) g.removeChild(g.firstChild); }
@@ -1254,6 +1263,7 @@
     /* ---------------- 静态层（视角变化时重绘） ---------------- */
     function drawStatic() {
       clear(staticG);
+      staticBoxes = [];
 
       // 地面网格
       for (var gi = -3; gi <= 3; gi++) {
@@ -1289,11 +1299,14 @@
       // 地面距离刻度
       [[5, '5 km'], [10, '10 km']].forEach(function (it) {
         var r = it[0] / 5;
-        [[r, 0], [-r, 0], [0, r], [0, -r]].forEach(function (p, idx) {
+        // 标注放在 45° 方向，避开 X/Y 轴标签
+        var d45 = r * 0.7071;
+        [[d45, d45], [-d45, d45], [d45, -d45], [-d45, -d45]].forEach(function (p, idx) {
           var P = pj([p[0], p[1], 0]);
-          el('text', { x: P[0].toFixed(1), y: (P[1] + (idx < 2 ? 12 : 4)).toFixed(1),
+          el('text', { x: P[0].toFixed(1), y: (P[1] + (idx < 2 ? 0 : 10)).toFixed(1),
             'text-anchor': 'middle', 'font-size': 9, 'font-family': 'WT Mono, Consolas, monospace',
             fill: '#557f63' }, staticG).textContent = it[1];
+          regBox(P[0] - it[1].length * 2.8, P[1] + 4, it[1], 9);
         });
       });
 
@@ -1312,11 +1325,14 @@
 
       // 机体三轴：X / Y / Z
       seg([0, 0, 0], [2.0, 0, 0], '#ff9f5e', 2.8, null, staticG);
-      txt('X', headTo([2.0, 0, 0], '#ff9f5e', staticG, 10), '#ff9f5e', 15, staticG);
+      var bX = headTo([2.0, 0, 0], '#ff9f5e', staticG, 10);
+      txt('X', bX, '#ff9f5e', 15, staticG); regBox(bX[0] + 9, bX[1] + 4, 'X', 15);
       seg([0, 0, 0], [0, 2.35, 0], '#58a6ff', 3.0, null, staticG);
-      txt('Y', headTo([0, 2.35, 0], '#58a6ff', staticG, 10), '#58a6ff', 15, staticG);
+      var bY = headTo([0, 2.35, 0], '#58a6ff', staticG, 10);
+      txt('Y', bY, '#58a6ff', 15, staticG); regBox(bY[0] + 9, bY[1] + 4, 'Y', 15);
       seg([0, 0, 0], [0, 0, 1.75], '#7ee787', 2.8, null, staticG);
-      txt('Z', headTo([0, 0, 1.75], '#7ee787', staticG, 10), '#7ee787', 15, staticG);
+      var bZ = headTo([0, 0, 1.75], '#7ee787', staticG, 10);
+      txt('Z', bZ, '#7ee787', 15, staticG); regBox(bZ[0] + 9, bZ[1] + 4, 'Z', 15);
 
       // 图例
       var LEG = [['#ff5cd2', 'MSL'], ['#ff6b5e', 'AIR'], ['#d8a95c', 'GND'], ['#7fd1ff', 'SUR']];
@@ -1336,7 +1352,7 @@
         .textContent = T('dragHint');
     }
     drawStatic();
-    applyViewBox();
+    applyViewBox(true);
     if (window.ResizeObserver) new ResizeObserver(applyViewBox).observe(svg);
     window.addEventListener('resize', applyViewBox);
 
@@ -1384,6 +1400,7 @@
     var lastT = 0, lp = 999, lr = 999, lh = 999, lastSig = '';
     return {
       set: function (C, V) {
+        applyViewBox(false);              // 尺寸变化时自动重算（保证居中与放大）
         var now = performance.now();
         var cs0 = (V && V.contacts) ? V.contacts : [];
         var sig = cs0.length + ':' + cs0.map(function (c) {
@@ -1397,7 +1414,7 @@
         /* 敌情圆柱 */
         clear(contactG);
         var CH = 0.26;
-        var placed = [];                       // 已占用的标签框，避免文字叠在一起
+        var placed = staticBoxes.slice();      // 先占住静态标签（轴名/距离刻度）
         function canPlace(x, y, w, h) {
           for (var pi2 = 0; pi2 < placed.length; pi2++) {
             var b = placed[pi2];
