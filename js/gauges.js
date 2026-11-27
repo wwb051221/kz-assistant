@@ -1559,20 +1559,16 @@
         var vTot = (K3.speed ? K3.speed(spd) : spd);
         var cxv = vTot * vdir[0], cyv = vTot * vdir[1], czv = vTot * vdir[2];
 
-        // 三个平面分量：只表示方向，长度与坐标轴一致（3.6 单位）
-        var AXISL = 3.6;
+        // 三个平面分量：矢量形式（长度 ∝ 该平面内的速度大小）
         var PL = [
           { v: [tip[0], tip[1], 0], c: '#7fd1ff', n: 'Vx,y', mag: Math.sqrt(cxv * cxv + cyv * cyv) },
           { v: [tip[0], 0, tip[2]], c: '#ff9f5e', n: 'Vx,z', mag: Math.sqrt(cxv * cxv + czv * czv) },
           { v: [0, tip[1], tip[2]], c: '#7ee787', n: 'Vy,z', mag: Math.sqrt(cyv * cyv + czv * czv) }
         ];
         PL.forEach(function (pl) {
-          var m2 = Math.sqrt(pl.v[0] * pl.v[0] + pl.v[1] * pl.v[1] + pl.v[2] * pl.v[2]);
-          if (m2 < 1e-6) return;
-          var u3 = [pl.v[0] / m2, pl.v[1] / m2, pl.v[2] / m2];
-          var e3 = [u3[0] * AXISL, u3[1] * AXISL, u3[2] * AXISL];
-          seg([0, 0, 0], e3, pl.c, 2.0, null, velG);
-          var pTip = headTo(e3, pl.c, velG, 8);
+          if (Math.abs(pl.v[0]) + Math.abs(pl.v[1]) + Math.abs(pl.v[2]) < 0.02) return;
+          seg([0, 0, 0], pl.v, pl.c, 2.2, null, velG);
+          var pTip = headTo(pl.v, pl.c, velG, 8);
           var t3 = Math.round(pl.mag) + '';
           if (!placeLabel(pTip[0] + 8, pTip[1] - 5, t3, pl.c, velG, 10)) {
             placeLabel(pTip[0] - 24, pTip[1] - 12, t3, pl.c, velG, 10);
