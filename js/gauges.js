@@ -1343,6 +1343,22 @@
       var bZ = headTo([0, 0, 3.2], '#7ee787', staticG, 10);
       txt('Z', bZ, '#7ee787', 15, staticG); regBox(bZ[0] + 9, bZ[1] + 4, 'Z', 15);
 
+      // 三轴上的距离刻度（每 1 单位 = UNIT_KM 公里）
+      for (var ti2 = 1; ti2 <= 3; ti2++) {
+        var kmT = Math.round(ti2 * UNIT_KM);
+        var ptx = pj([ti2, 0, 0]), pty = pj([0, ti2, 0]), ptz = pj([0, 0, ti2]);
+        var lbx = kmT + '', lsize = 8;
+        el('text', { x: (ptx[0]).toFixed(1), y: (ptx[1] + 12).toFixed(1), 'text-anchor': 'middle',
+          'font-size': lsize, 'font-family': 'WT Mono, Consolas, monospace', fill: '#8a5a3e' }, staticG).textContent = lbx;
+        regBox(ptx[0] - lbx.length * 2.4, ptx[1] + 16, lbx, lsize);
+        el('text', { x: (pty[0] - 12).toFixed(1), y: (pty[1] + 3).toFixed(1), 'text-anchor': 'end',
+          'font-size': lsize, 'font-family': 'WT Mono, Consolas, monospace', fill: '#3e6a94' }, staticG).textContent = lbx;
+        regBox(pty[0] - 12 - lbx.length * 4.8, pty[1] + 7, lbx, lsize);
+        el('text', { x: (ptz[0] + 8).toFixed(1), y: (ptz[1] + 3).toFixed(1),
+          'font-size': lsize, 'font-family': 'WT Mono, Consolas, monospace', fill: '#3f7a52' }, staticG).textContent = lbx;
+        regBox(ptz[0] + 10, ptz[1] + 7, lbx, lsize);
+      }
+
       // 图例
       var LEG = [['#ff5cd2', 'MSL'], ['#ff6b5e', 'AIR'], ['#d8a95c', 'GND'], ['#7fd1ff', 'SUR']];
       var legName = { MSL: T('kMsl'), AIR: T('kAir'), GND: T('kGnd'), SUR: T('kSur') };
@@ -1484,9 +1500,9 @@
 
         // 三个坐标平面上的投影分量：XOY / XOZ / YOZ
         var PL = [
-          { v: [tip[0], tip[1], 0], c: '#7fd1ff', n: 'XOY', mag: Math.sqrt(cxv * cxv + cyv * cyv) },
-          { v: [tip[0], 0, tip[2]], c: '#ff9f5e', n: 'XOZ', mag: Math.sqrt(cxv * cxv + czv * czv) },
-          { v: [0, tip[1], tip[2]], c: '#7ee787', n: 'YOZ', mag: Math.sqrt(cyv * cyv + czv * czv) }
+          { v: [tip[0], tip[1], 0], c: '#7fd1ff', n: 'Vx,y', mag: Math.sqrt(cxv * cxv + cyv * cyv) },
+          { v: [tip[0], 0, tip[2]], c: '#ff9f5e', n: 'Vx,z', mag: Math.sqrt(cxv * cxv + czv * czv) },
+          { v: [0, tip[1], tip[2]], c: '#7ee787', n: 'Vy,z', mag: Math.sqrt(cyv * cyv + czv * czv) }
         ];
         PL.forEach(function (pl) {
           if (Math.abs(pl.v[0]) + Math.abs(pl.v[1]) + Math.abs(pl.v[2]) < 0.02) return;
