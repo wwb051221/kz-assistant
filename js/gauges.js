@@ -864,7 +864,8 @@
     var cEsKg = el('text', { x: 28, y: 146, 'font-size': 12, 'font-family': MONO, fill: '#5f7f6a' }, svg);
     var cPs = calcCell(316, 78, 'ps', true);
     var cTurn = calcCell(28, 178, 'turnR', false);
-    var cRad = calcCell(316, 178, 'radius', false);
+    var cSpd = calcCell(316, 178, 'speedTotal', false);
+    var cSpdC = el('text', { x: 316, y: 232, 'font-size': 13, 'font-family': MONO, fill: '#7f9a86' }, svg);
     var cThr = calcCell(28, 258, 'thrust', false);
     var cAcc = calcCell(316, 258, 'accel', false);
     var cEnd = calcCell(28, 338, 'endur', false);
@@ -904,7 +905,7 @@
         var lab = el('text', { x: cxp, y: top - 5, 'text-anchor': 'middle', 'font-size': rows > 1 ? 9 : 11,
           'font-family': MONO, fill: GRN }, engG);
         lab.textContent = n === 1 ? T('single') : (n === 2 ? (i === 0 ? T('engLeft') : T('engRight')) : ('#' + (i + 1)));
-        var pctLab = el('text', { x: cxp, y: bot + 24, 'text-anchor': 'middle', 'font-size': rows > 1 ? 8 : 9,
+        var pctLab = el('text', { x: cxp, y: bot + 27, 'text-anchor': 'middle', 'font-size': rows > 1 ? 8 : 9,
           'font-family': 'MONO', fill: '#5f6f5c' }, engG);
         pctLab.textContent = '';
         el('rect', { x: cxp - bw / 2 - 2, y: top, width: bw + 4, height: bot - top, fill: '#080b08', stroke: '#223026' }, engG);
@@ -1004,7 +1005,15 @@
         cPs.textContent = (K2.ps >= 0 ? '+' : '') + K2.ps.toFixed(0) + ' m/s';
         cPs.setAttribute('fill', K2.ps >= 0 ? GRN : AMB);
         cTurn.textContent = K2.omega.toFixed(1) + ' \u00b0/s';
-        cRad.textContent = (C.tas < 5) ? '---' : (K2.radius > 0 ? Math.round(K2.radius) + ' m' : '\u221e');
+        // 速度：总量 + 机体系 XYZ 分量（X 右 / Y 机头 / Z 上）
+        var vTot = U(C.tas, 'speed');
+        cSpd.textContent = Math.round(vTot) + ' ' + UN('speedUnit', 'KM/H');
+        var aa = C.aoa * Math.PI / 180, ss = C.aos * Math.PI / 180;
+        var vY = vTot * Math.cos(ss) * Math.cos(aa);
+        var vX = vTot * Math.sin(ss) * Math.cos(aa);
+        var vZ = -vTot * Math.sin(aa);
+        function sg(n) { return (n >= 0 ? '+' : '\u2212') + Math.abs(Math.round(n)); }
+        cSpdC.textContent = 'X ' + sg(vX) + '   Y ' + sg(vY) + '   Z ' + sg(vZ);
         cThr.textContent = thrust + ' kN';
         cAcc.textContent = (K2.accel >= 0 ? '+' : '') + K2.accel.toFixed(1) + ' m/s\u00b2';
         if (K2.endur > 0) {
