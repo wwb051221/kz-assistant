@@ -36,6 +36,7 @@
     view: 'axes',
     maxThrust: 110,
     fAir: true, fGnd: false, fSur: false,
+    rangeKm: 200,
     thrustAuto: true,
     layout: 'auto',
     units: 'metric',
@@ -551,6 +552,8 @@
     markSeg('setSensor', settings.sensor || 'tgp', 'data-v');
     markSeg('setLayout', settings.layout || 'auto', 'data-v');
     markSeg('setModel3D', settings.view || 'axes', 'data-v');
+    markSeg('setRange', String(settings.rangeKm || 200), 'data-v');
+    if (window.KZ) KZ.rangeKm = settings.rangeKm || 200;
     ['fAir', 'fGnd', 'fSur'].forEach(function (k) {
       var v = (k === 'fAir') ? 'air' : (k === 'fGnd' ? 'gnd' : 'sur');
       var btn = document.querySelector('#setFilter button[data-v="' + v + '"]');
@@ -595,6 +598,14 @@
       settings.modelYaw = 0; settings.modelScale = 1;
       if (Attitude3D.applyUserTransform) Attitude3D.applyUserTransform();
       saveSettings(); syncSettingsUi();
+    });
+    $('setRange').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button') : null;
+      if (!b || !b.dataset.v) return;
+      settings.rangeKm = parseInt(b.dataset.v, 10) || 200;
+      if (window.KZ) KZ.rangeKm = settings.rangeKm;
+      markSeg('setRange', b.dataset.v, 'data-v');
+      saveSettings();
     });
     $('setFilter').addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('button') : null;

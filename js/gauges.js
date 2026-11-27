@@ -1261,9 +1261,13 @@
     function clear(g) { while (g.firstChild) g.removeChild(g.firstChild); }
 
     /* ---------------- 静态层（视角变化时重绘） ---------------- */
+    var UNIT_KM = 50;                        // 1 单位 = ? km（由量程/4 决定）
+    var lastRange = -1;
+
     function drawStatic() {
       clear(staticG);
       staticBoxes = [];
+      UNIT_KM = ((window.KZ && KZ.rangeKm) ? KZ.rangeKm : 200) / 4;   // 轴长 4 单位
 
       // 地面网格
       for (var gi = -4; gi <= 4; gi++) {
@@ -1274,7 +1278,7 @@
 
       // 距离球（三个正交大圆）
       function sphere(km2, color) {
-        var r = km2 / 50;
+        var r = km2 / UNIT_KM;
         ellipseOn(staticG, [0, 0, 0], r, 0, color);
         var pts = [];
         for (var a = 0; a <= 360; a += 6) {
@@ -1293,12 +1297,16 @@
         el('polygon', { points: pts.join(' '), fill: 'none', stroke: color, 'stroke-width': 1,
           'stroke-dasharray': '2 7', opacity: .3 }, staticG);
       }
-      sphere(50, '#2f4a37');
-      sphere(100, '#23372a');
-      sphere(200, '#1b2a20');
+      var RANGE = UNIT_KM * 4;
+      sphere(RANGE / 4, '#2f4a37');
+      sphere(RANGE / 2, '#23372a');
+      sphere(RANGE, '#1b2a20');
 
       // 地面距离刻度
-      [[50, '50 km'], [100, '100 km'], [200, '200 km']].forEach(function (it) {
+      function kmLab(v) { return (Math.abs(v - Math.round(v)) < 0.01 ? Math.round(v) : v.toFixed(1)) + ' km'; }
+      [[RANGE / 4, kmLab(RANGE / 4)],
+       [RANGE / 2, kmLab(RANGE / 2)],
+       [RANGE, kmLab(RANGE)]].forEach(function (it) {
         var r = it[0] / 5;
         // 标注放在 45° 方向，避开 X/Y 轴标签
         var d45 = r * 0.7071;
@@ -1402,6 +1410,8 @@
     return {
       set: function (C, V) {
         applyViewBox(false);              // 尺寸变化时自动重算（保证居中与放大）
+        var rk = (window.KZ && KZ.rangeKm) ? KZ.rangeKm : 200;
+        if (rk !== lastRange) { lastRange = rk; drawStatic(); dirty = true; }
         var now = performance.now();
         var cs0 = (V && V.contacts) ? V.contacts : [];
         var sig = cs0.length + ':' + cs0.map(function (c) {
@@ -1440,7 +1450,7 @@
         }
         for (var ci = 0; ci < cs0.length; ci++) {
           var cc = cs0[ci];
-          var d = Math.min(4, cc.dist / 1000 / 50);
+          var d = Math.min(4, cc.dist / 1000 / UNIT_KM);
           var dlt = (cc.brg - C.hdg) * Math.PI / 180;
           var bx = d * Math.sin(dlt), by = d * Math.cos(dlt);
           var col = cc.kind === 'MSL' ? '#ff5cd2' : (cc.kind === 'AIR' ? '#ff6b5e' : (cc.kind === 'GND' ? '#d8a95c' : '#7fd1ff'));
