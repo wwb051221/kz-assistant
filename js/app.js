@@ -63,7 +63,7 @@
     fuel: 0, fuel0: 0, throttle: 0, oil: 0,
     rpm: [0, 0, 0, 0, 0, 0, 0, 0], thr: [0, 0, 0, 0, 0, 0, 0, 0], engCount: 1,
     pitch: 0, roll: 0, hdg: 0,
-    gear: 0, gears: null, flaps: 0, brake: 0,
+    gear: 0, gearPct: null, gearSrc: null, gears: null, flaps: 0, brake: 0,
     valid: false, type: '', attSrc: '', trk: -1, trkAt: 0, mock: false, contacts: []
   };
   var C = JSON.parse(JSON.stringify(V));
@@ -191,6 +191,7 @@
     V.aoa = n(s['AoA, deg'], 0);
     V.aos = n(s['AoS, deg'], 0);
     V.g = n(s['Ny'], 1);
+    if (typeof s['gear, %'] !== 'undefined') V.gearPct = n(s['gear, %'], 0);
     V.fuel = n(s['Mfuel, kg'], 0);
     V.fuel0 = n(s['Mfuel0, kg'], 0) || V.fuel0;
 
@@ -224,18 +225,33 @@
     lastIndAt = performance.now();
 
     if (typeof ind.compass !== 'undefined') V.hdg = ((n(ind.compass, V.hdg) % 360) + 360) % 360;
-    if (typeof ind.gears !== 'undefined') V.gear = n(ind.gears, 0);
+    // 起落架：indicators 的 gears 优先，缺失时用 /state 的 gear, %
+    if (typeof ind.gears !== 'undefined' && ind.gears !== null) {
+      V.gear = n(ind.gears, 0);
+      V.gearSrc = 'IND';
+    } else if (typeof V.gearPct === 'number') {
+      V.gear = V.gearPct;
+      V.gearSrc = 'STATE';
+    }
     var gs = [];
-    for (var gi = 1; gi <= 3; gi++) {
+    for (var gi = 1; gi <= 4; gi++) {
       if (typeof ind['gears' + gi] !== 'undefined') gs.push(n(ind['gears' + gi], 0));
     }
-    V.gears = gs.length >= 2 ? gs : null;
+    if (!gs.length) {
+      for (var gj = 0; gj <= 2; gj++) {
+        if (typeof ind['gears' + gj] !== 'undefined') gs.push(n(ind['gears' + gj], 0));
+      }
+    }
+    V.gears = gs.length ? gs : null;   // 本轮没给就清掉，避免显示上一架飞机的状态
     if (typeof ind.flaps !== 'undefined') V.flaps = n(ind.flaps, 0);
     if (typeof ind.airbrake_indicator !== 'undefined') V.brake = n(ind.airbrake_indicator, 0);
     if (typeof ind.g_meter !== 'undefined' && !V.g) V.g = n(ind.g_meter, 1);
     if (typeof ind.type === 'string' && ind.type) {
       if (ind.type !== V.type) {
         V.type = ind.type;
+        V.gears = null;
+        V.gearSrc = null;
+        if (typeof V.gearPct === 'number') V.gear = V.gearPct;
         if (settings.thrustAuto !== false) {
           var tv0 = lookupThrust(V.type);
           if (tv0 && Math.abs(tv0 - settings.maxThrust) > 0.5) {

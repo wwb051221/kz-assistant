@@ -18,7 +18,7 @@ using Microsoft.Win32;
 static class Program
 {
     const string Name = "空战助手";
-    const string Version = "1.0.8";
+    const string Version = "1.0.9";
 
     static string DataDir;
     static string WebDir;
@@ -80,7 +80,7 @@ static class Program
         public PanelForm(int port)
         {
             this.port = port;
-            Text = Name + " 1.0.8 测试版";
+            Text = Name + " 1.0.9 测试版";
             BackColor = Color.Black;
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.Manual;
