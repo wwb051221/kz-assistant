@@ -1260,6 +1260,23 @@
       var w = text.length * size * 0.62, h = size * 1.25;
       staticBoxes.push({ x: x, y: y - h * 0.8, w: w, h: h });
     }
+    function staticFree(x, y, w, h) {
+      for (var i = 0; i < staticBoxes.length; i++) {
+        var b = staticBoxes[i];
+        if (x < b.x + b.w && x + w > b.x && y < b.y + b.h && y + h > b.y) return false;
+      }
+      return true;
+    }
+    // 居中且带占用检测（挤就跳过）
+    function staticLabel(x, y, text, size, color) {
+      var w = text.length * size * 0.62, h = size * 1.25;
+      if (!staticFree(x - w / 2, y - h, w, h)) return false;
+      staticBoxes.push({ x: x - w / 2, y: y - h, w: w, h: h });
+      el('text', { x: x.toFixed(1), y: y.toFixed(1), 'text-anchor': 'middle',
+        'font-size': size, 'font-family': 'WT Mono, Consolas, monospace', fill: color }, staticG)
+        .textContent = text;
+      return true;
+    }
     var contactG = el('g', null, svg);
     var velG = el('g', null, svg);
     var convTxt = el('text', { x: 18, y: 560, 'font-size': 10,
@@ -1314,15 +1331,11 @@
       [[RANGE / 4, kmLab(RANGE / 4)],
        [RANGE / 2, kmLab(RANGE / 2)],
        [RANGE, kmLab(RANGE)]].forEach(function (it) {
-        var r = it[0] / 5;
-        // 标注放在 45° 方向，避开 X/Y 轴标签
+        var r = it[0] / UNIT_KM;                    // 半径按单位换算（原来写死 /5 会跑飞）
         var d45 = r * 0.7071;
-        [[d45, d45], [-d45, d45], [d45, -d45], [-d45, -d45]].forEach(function (p, idx) {
+        [[d45, d45], [-d45, d45], [d45, -d45], [-d45, -d45]].forEach(function (p) {
           var P = pj([p[0], p[1], 0]);
-          el('text', { x: P[0].toFixed(1), y: (P[1] + (idx < 2 ? 0 : 10)).toFixed(1),
-            'text-anchor': 'middle', 'font-size': 9, 'font-family': 'WT Mono, Consolas, monospace',
-            fill: '#557f63' }, staticG).textContent = it[1];
-          regBox(P[0] - it[1].length * 2.8, P[1] + 4, it[1], 9);
+          staticLabel(P[0], P[1] + 4, it[1], 9, '#557f63');
         });
       });
 
@@ -1352,18 +1365,11 @@
 
       // 三轴上的距离刻度（每 1 单位 = UNIT_KM 公里）
       for (var ti2 = 1; ti2 <= 3; ti2++) {
-        var kmT = Math.round(ti2 * UNIT_KM);
+        var lbx = Math.round(ti2 * UNIT_KM) + '';
         var ptx = pj([ti2, 0, 0]), pty = pj([0, ti2, 0]), ptz = pj([0, 0, ti2]);
-        var lbx = kmT + '', lsize = 8;
-        el('text', { x: (ptx[0]).toFixed(1), y: (ptx[1] + 12).toFixed(1), 'text-anchor': 'middle',
-          'font-size': lsize, 'font-family': 'WT Mono, Consolas, monospace', fill: '#8a5a3e' }, staticG).textContent = lbx;
-        regBox(ptx[0] - lbx.length * 2.4, ptx[1] + 16, lbx, lsize);
-        el('text', { x: (pty[0] - 12).toFixed(1), y: (pty[1] + 3).toFixed(1), 'text-anchor': 'end',
-          'font-size': lsize, 'font-family': 'WT Mono, Consolas, monospace', fill: '#3e6a94' }, staticG).textContent = lbx;
-        regBox(pty[0] - 12 - lbx.length * 4.8, pty[1] + 7, lbx, lsize);
-        el('text', { x: (ptz[0] + 8).toFixed(1), y: (ptz[1] + 3).toFixed(1),
-          'font-size': lsize, 'font-family': 'WT Mono, Consolas, monospace', fill: '#3f7a52' }, staticG).textContent = lbx;
-        regBox(ptz[0] + 10, ptz[1] + 7, lbx, lsize);
+        staticLabel(ptx[0], ptx[1] + 12, lbx, 8, '#8a5a3e');
+        staticLabel(pty[0] - 10, pty[1] + 3, lbx, 8, '#3e6a94');
+        staticLabel(ptz[0] + 10, ptz[1] + 3, lbx, 8, '#3f7a52');
       }
 
       // 图例
@@ -1541,33 +1547,29 @@
         var vTot = (K3.speed ? K3.speed(spd) : spd);
         var cxv = vTot * vdir[0], cyv = vTot * vdir[1], czv = vTot * vdir[2];
 
-        // 三个坐标平面上的投影分量：XOY / XOZ / YOZ
+        // 三个平面分量：只表示方向，长度与坐标轴一致（3.6 单位）
+        var AXISL = 3.6;
         var PL = [
           { v: [tip[0], tip[1], 0], c: '#7fd1ff', n: 'Vx,y', mag: Math.sqrt(cxv * cxv + cyv * cyv) },
           { v: [tip[0], 0, tip[2]], c: '#ff9f5e', n: 'Vx,z', mag: Math.sqrt(cxv * cxv + czv * czv) },
           { v: [0, tip[1], tip[2]], c: '#7ee787', n: 'Vy,z', mag: Math.sqrt(cyv * cyv + czv * czv) }
         ];
         PL.forEach(function (pl) {
-          if (Math.abs(pl.v[0]) + Math.abs(pl.v[1]) + Math.abs(pl.v[2]) < 0.02) return;
-          seg([0, 0, 0], pl.v, pl.c, 2.2, null, velG);
-          headTo(pl.v, pl.c, velG, 7);
-          seg(pl.v, tip, pl.c, 1, '2 5', velG);            // 该平面投影到速度矢量的连线
-        });
-
-        // 主速度矢量
-        seg([0, 0, 0], tip, '#ff5cd2', 2.6, null, velG);
-        var B = headTo(tip, '#ff5cd2', velG);
-
-        // 三个平面分量的数值（该平面内的速度模）
-        PL.forEach(function (pl) {
-          var P = pj(pl.v);
-          var t2 = pl.n + ' ' + Math.round(pl.mag);
-          if (!placeLabel(P[0] + 8, P[1] - 5, t2, pl.c, velG, 10)) {
-            var u2 = [pl.v[0] * 1.25, pl.v[1] * 1.25, pl.v[2] * 1.25];
-            var P2 = pj(u2);
-            placeLabel(P2[0] + 9, P2[1] - 7, t2, pl.c, velG, 10);
+          var m2 = Math.sqrt(pl.v[0] * pl.v[0] + pl.v[1] * pl.v[1] + pl.v[2] * pl.v[2]);
+          if (m2 < 1e-6) return;
+          var u3 = [pl.v[0] / m2, pl.v[1] / m2, pl.v[2] / m2];
+          var e3 = [u3[0] * AXISL, u3[1] * AXISL, u3[2] * AXISL];
+          seg([0, 0, 0], e3, pl.c, 2.0, null, velG);
+          var pTip = headTo(e3, pl.c, velG, 8);
+          var t3 = Math.round(pl.mag) + '';
+          if (!placeLabel(pTip[0] + 8, pTip[1] - 5, t3, pl.c, velG, 10)) {
+            placeLabel(pTip[0] - 24, pTip[1] - 12, t3, pl.c, velG, 10);
           }
         });
+
+        // 主速度矢量（长度仍表示速度大小）
+        seg([0, 0, 0], tip, '#ff5cd2', 2.6, null, velG);
+        var B = headTo(tip, '#ff5cd2', velG);
 
         var vTxt = 'VEL ' + Math.round(vTot) + ' ' + unit;
         var bx0 = B[0] + 14, by0 = B[1] + 16;
