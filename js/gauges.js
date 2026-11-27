@@ -1473,23 +1473,45 @@
         }
         for (var ci = 0; ci < cs0.length; ci++) {
           var cc = cs0[ci];
-          var d = Math.min(4, cc.dist / 1000 / UNIT_KM);
+          var d = cc.dist / 1000 / UNIT_KM;      // 真实比例，不做截断
           var dlt = (cc.brg - C.hdg) * Math.PI / 180;
           var bx = d * Math.sin(dlt), by = d * Math.cos(dlt);
           var col = cc.kind === 'MSL' ? '#ff5cd2' : (cc.kind === 'AIR' ? '#ff6b5e' : (cc.kind === 'GND' ? '#d8a95c' : '#7fd1ff'));
-          var rr = cc.kind === 'MSL' ? 0.075 : 0.06;
-
-          ellipseOn(contactG, [bx, by, 0], rr, 0, col, 1.2, 'none');
-          ellipseOn(contactG, [bx, by, CH], rr, 0, col, 1.2, 'none');
-          seg([bx - rr, by, 0], [bx - rr, by, CH], col, 1.2, null, contactG);
-          seg([bx + rr, by, 0], [bx + rr, by, CH], col, 1.2, null, contactG);
-          var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
-          var hs = rr * 2.6;
-          seg([bx, by, CH], [bx + Math.sin(dRel) * hs, by + Math.cos(dRel) * hs, CH], col, 2, null, contactG);
-          var top = pj([bx, by, CH]);
           var lb = (cc.est ? '~' : '') +
             (cc.dist > 1000 ? (cc.dist / 1000).toFixed(1) + 'km' : Math.round(cc.dist) + 'm');
-          placeLabel(top[0] + 9, top[1] - 4, lb, col, contactG, 9);
+
+          var P0 = pj([bx, by, 0]);
+          var M = 14;
+          var inside = P0[0] > M && P0[0] < 600 - M && P0[1] > M && P0[1] < VBH - M;
+
+          if (inside) {
+            // 在量程内：画圆柱
+            ellipseOn(contactG, [bx, by, 0], 0.06, 0, col, 1.2, 'none');
+            ellipseOn(contactG, [bx, by, CH], 0.06, 0, col, 1.2, 'none');
+            seg([bx - 0.06, by, 0], [bx - 0.06, by, CH], col, 1.2, null, contactG);
+            seg([bx + 0.06, by, 0], [bx + 0.06, by, CH], col, 1.2, null, contactG);
+            var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
+            seg([bx, by, CH], [bx + Math.sin(dRel) * 0.16, by + Math.cos(dRel) * 0.16, CH], col, 2, null, contactG);
+            var top = pj([bx, by, CH]);
+            placeLabel(top[0] + 9, top[1] - 4, lb, col, contactG, 9);
+          } else {
+            // 超出量程：贴边画一个朝外的三角 + 距离，表示"这个方向、更远"
+            var cxS = 300, cyS = VBH / 2;
+            var vx2 = P0[0] - cxS, vy2 = P0[1] - cyS;
+            var len2 = Math.sqrt(vx2 * vx2 + vy2 * vy2) || 1;
+            var kx = (600 - M) / Math.abs(vx2 || 1e-6);
+            var ky = (VBH - M) / Math.abs(vy2 || 1e-6);
+            var kk = Math.min(kx, ky);
+            var ex2 = cxS + vx2 * kk, ey2 = cyS + vy2 * kk;
+            var ang2 = Math.atan2(vy2, vx2);
+            var rr2 = 8;
+            el('polygon', { points:
+              (ex2 + rr2 * Math.cos(ang2)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2)).toFixed(1) + ' ' +
+              (ex2 + rr2 * Math.cos(ang2 + 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 + 2.5)).toFixed(1) + ' ' +
+              (ex2 + rr2 * Math.cos(ang2 - 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 - 2.5)).toFixed(1),
+              fill: col, opacity: .95 }, contactG);
+            placeLabel(ex2 + 10, ey2 + 4, lb, col, contactG, 9);
+          }
         }
 
         /* 本机速度矢量 + 分量 */
