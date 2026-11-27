@@ -311,7 +311,8 @@
       var dxm = (o.x - self.x) * W;
       var dym = (o.y - self.y) * H;
       var dist = Math.sqrt(dxm * dxm + dym * dym);
-      var brg = ((Math.atan2(dxm, dym) * 180 / Math.PI) + 360) % 360;
+      // 注意：地图 y 轴向下，与罗盘航向差 180°，必须用 -dym（与 TRK 同约定）
+      var brg = ((Math.atan2(dxm, -dym) * 180 / Math.PI) + 360) % 360;
       var kind = 'AIR';
       var ic = String(o.icon || '');
       // 导弹要排除 MissileDestroyer（那是军舰）
@@ -321,7 +322,7 @@
       else if (o.type !== 'aircraft') kind = 'SUR';
       var dir = 0;
       if (typeof o.dx === 'number' && typeof o.dy === 'number' && (o.dx || o.dy)) {
-        dir = ((Math.atan2(o.dx, o.dy) * 180 / Math.PI) + 360) % 360;
+        dir = ((Math.atan2(o.dx, -o.dy) * 180 / Math.PI) + 360) % 360;
       }
       out.push({ brg: brg, dist: dist, kind: kind, icon: o.icon || '', type: o.type, dir: dir });
     }
