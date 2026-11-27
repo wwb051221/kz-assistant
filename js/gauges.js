@@ -1485,36 +1485,28 @@
           var inside = P0[0] > M && P0[0] < 600 - M && P0[1] > M && P0[1] < VBH - M;
 
           if (inside) {
-            // 量程内：从本机指向目标的箭头
-            seg([0, 0, 0], [bx, by, 0], col, cc.kind === 'MSL' ? 2.6 : 2.0, null, contactG);
-            headTo([bx, by, 0], col, contactG, 8);
-            // 末端一小段表示目标朝向
+            // 目标：在它自己的位置上画一个小箭头（指示它的机头方向），不从本机连线
             var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
-            var tl = 0.18;
-            seg([bx, by, 0], [bx + Math.sin(dRel) * tl, by + Math.cos(dRel) * tl, 0], col, 2.2, null, contactG);
-            var tipP = pj([bx, by, 0]);
-            placeLabel(tipP[0] + 10, tipP[1] + 4, lb, col, contactG, 9);
+            var L2 = 0.22;
+            el('circle', { cx: P0[0].toFixed(1), cy: P0[1].toFixed(1), r: 2.4, fill: col }, contactG);
+            seg([bx, by, 0], [bx + Math.sin(dRel) * L2, by + Math.cos(dRel) * L2, 0], col, 2.2, null, contactG);
+            headTo([bx + Math.sin(dRel) * L2, by + Math.cos(dRel) * L2, 0], col, contactG, 6);
+            placeLabel(P0[0] + 8, P0[1] - 6, lb, col, contactG, 9);
           } else {
-            // 超出量程：贴边画一个朝外的三角 + 距离，表示"这个方向、更远"
+            // 超出量程：贴边画朝外三角（不连线），标注真实距离
             var cxS = 300, cyS = VBH / 2;
             var vx2 = P0[0] - cxS, vy2 = P0[1] - cyS;
-            var len2 = Math.sqrt(vx2 * vx2 + vy2 * vy2) || 1;
-            var kx = (600 - M) / Math.abs(vx2 || 1e-6);
-            var ky = (VBH - M) / Math.abs(vy2 || 1e-6);
+            var kx = (600 - 14) / Math.abs(vx2 || 1e-6);
+            var ky = (VBH - 14) / Math.abs(vy2 || 1e-6);
             var kk = Math.min(kx, ky);
             var ex2 = cxS + vx2 * kk, ey2 = cyS + vy2 * kk;
             var ang2 = Math.atan2(vy2, vx2);
-            var rr2 = 8;
+            var rr2 = 7;
             el('polygon', { points:
               (ex2 + rr2 * Math.cos(ang2)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2)).toFixed(1) + ' ' +
               (ex2 + rr2 * Math.cos(ang2 + 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 + 2.5)).toFixed(1) + ' ' +
               (ex2 + rr2 * Math.cos(ang2 - 2.5)).toFixed(1) + ',' + (ey2 + rr2 * Math.sin(ang2 - 2.5)).toFixed(1),
               fill: col, opacity: .95 }, contactG);
-            // 从本机到边缘的虚线（指向该方位）
-            var O0 = pj([0, 0, 0]);
-            el('line', { x1: O0[0].toFixed(1), y1: O0[1].toFixed(1),
-              x2: ex2.toFixed(1), y2: ey2.toFixed(1), stroke: col,
-              'stroke-width': 1.2, 'stroke-dasharray': '4 6', opacity: .65 }, contactG);
             placeLabel(ex2 + 10, ey2 + 4, lb, col, contactG, 9);
           }
         }
