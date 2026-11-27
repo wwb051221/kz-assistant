@@ -305,6 +305,45 @@
   var mapScaleN = 0;
   var calPrev = null;
 
+  /* ============================================================
+     地图方位约定自标定
+     map_obj 的 x/y 轴向不明确，可能是正常/镜像/交换。
+     用「自机位移方向 vs 罗盘航向」在 4 种候选变换里选误差最小的那个。
+       0:  ang          1: 360-ang        2: 180-ang        3: 180+ang
+     ============================================================ */
+  var convErr = [0, 0, 0, 0], convN = [0, 0, 0, 0], convPick = 0;
+
+  function wrap180(a) { return ((a + 540) % 360) - 180; }
+
+  function mapAngle(dx, dy) {
+    return ((Math.atan2(dx, -dy) * 180 / Math.PI) + 360) % 360;
+  }
+
+  function learnMapConv(ddx, ddy) {
+    if (!(V.tas > 80)) return;
+    var a = mapAngle(ddx, ddy);
+    var cand = [a, (360 - a) % 360, (180 - a + 360) % 360, (180 + a) % 360];
+    var hdg = V.hdg;
+    for (var i = 0; i < 4; i++) {
+      var e = wrap180(cand[i] - hdg);
+      convErr[i] += e * e;
+      convN[i]++;
+    }
+    if (convN[0] > 6) {
+      var best = 0;
+      for (var k = 1; k < 4; k++) if (convErr[k] < convErr[best]) best = k;
+      convPick = best;
+      if (window.KZ) KZ.mapConv = best;
+    }
+  }
+
+  function convAngle(a) {
+    if (convPick === 1) return (360 - a) % 360;
+    if (convPick === 2) return (180 - a + 360) % 360;
+    if (convPick === 3) return (180 + a) % 360;
+    return a;
+  }
+
   function calibrateScale(self, now, tasKmh) {
     if (!(tasKmh > 60)) { calPrev = null; return; }       // 太慢不计
     if (!calPrev) { calPrev = { x: self.x, y: self.y, t: now }; return; }
@@ -341,6 +380,7 @@
       if (Math.sqrt(ddx * ddx + ddy * ddy) > 2e-5) {
         V.trk = ((Math.atan2(ddx, -ddy) * 180 / Math.PI) + 360) % 360;
         V.trkAt = now;
+        learnMapConv(ddx, ddy);
       }
     }
     lastSelf = { x: self.x, y: self.y, t: now };
@@ -358,7 +398,7 @@
       var dym = (o.y - self.y) * H;
       var dist = Math.sqrt(dxm * dxm + dym * dym);
       // 注意：地图 y 轴向下，与罗盘航向差 180°，必须用 -dym（与 TRK 同约定）
-      var brg = ((Math.atan2(dxm, -dym) * 180 / Math.PI) + 360) % 360;
+      var brg = convAngle(mapAngle(dxm, dym));
       var kind = 'AIR';
       var ic = String(o.icon || '');
       // 导弹要排除 MissileDestroyer（那是军舰）
@@ -368,7 +408,7 @@
       else if (o.type !== 'aircraft') kind = 'SUR';
       var dir = 0;
       if (typeof o.dx === 'number' && typeof o.dy === 'number' && (o.dx || o.dy)) {
-        dir = ((Math.atan2(o.dx, -o.dy) * 180 / Math.PI) + 360) % 360;
+        dir = convAngle(mapAngle(o.dx, o.dy));
       }
       // 过滤：默认只看飞机/导弹，地面与水面可各自开启
       if ((kind === 'AIR' || kind === 'MSL') && !settings.fAir) continue;

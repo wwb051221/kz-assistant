@@ -1258,6 +1258,9 @@
     }
     var contactG = el('g', null, svg);
     var velG = el('g', null, svg);
+    var convTxt = el('text', { x: 18, y: 560, 'font-size': 10,
+      'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, svg);
+    convTxt.textContent = '';
     function clear(g) { while (g.firstChild) g.removeChild(g.firstChild); }
 
     /* ---------------- 静态层（视角变化时重绘） ---------------- */
@@ -1425,7 +1428,11 @@
     var lastT = 0, lp = 999, lr = 999, lh = 999, lastSig = '';
     return {
       set: function (C, V) {
-        applyViewBox(false);              // 尺寸变化时自动重算（保证居中与放大）
+        applyViewBox(false);
+        var cv = (window.KZ && typeof KZ.mapConv === 'number') ? KZ.mapConv : -1;
+        convTxt.setAttribute('x', 18);
+        convTxt.setAttribute('y', (VBH - 10).toFixed(0));
+        convTxt.textContent = cv >= 0 ? '\u65b9\u4f4d\u7ea6\u5b9a ' + 'ABCD'.charAt(cv) : '';              // 尺寸变化时自动重算（保证居中与放大）
         var rk = (window.KZ && KZ.rangeKm) ? KZ.rangeKm : 200;
         if (rk !== lastRange) { lastRange = rk; drawStatic(); dirty = true; }
         var now = performance.now();
