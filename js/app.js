@@ -35,6 +35,7 @@
     showModel: false,
     view: 'axes',
     maxThrust: 110,
+    fAir: true, fGnd: false, fSur: false,
     thrustAuto: true,
     layout: 'auto',
     units: 'metric',
@@ -368,6 +369,11 @@
       if (typeof o.dx === 'number' && typeof o.dy === 'number' && (o.dx || o.dy)) {
         dir = ((Math.atan2(o.dx, -o.dy) * 180 / Math.PI) + 360) % 360;
       }
+      // 过滤：默认只看飞机/导弹，地面与水面可各自开启
+      if ((kind === 'AIR' || kind === 'MSL') && !settings.fAir) continue;
+      if (kind === 'GND' && !settings.fGnd) continue;
+      if (kind === 'SUR' && !settings.fSur) continue;
+
       out.push({ brg: brg, dist: dist, kind: kind, icon: o.icon || '', type: o.type, dir: dir,
                  est: !(mapScale > 0) });
     }
@@ -538,6 +544,11 @@
     markSeg('setSensor', settings.sensor || 'tgp', 'data-v');
     markSeg('setLayout', settings.layout || 'auto', 'data-v');
     markSeg('setModel3D', settings.view || 'axes', 'data-v');
+    ['fAir', 'fGnd', 'fSur'].forEach(function (k) {
+      var v = (k === 'fAir') ? 'air' : (k === 'fGnd' ? 'gnd' : 'sur');
+      var btn = document.querySelector('#setFilter button[data-v="' + v + '"]');
+      if (btn) btn.classList.toggle('on', !!settings[k]);
+    });
     if ($('maxThrust')) $('maxThrust').value = settings.maxThrust || 110;
     if ($('maxThrustV')) $('maxThrustV').textContent = Math.round(settings.maxThrust || 110) + ' kN';
     markSeg('setThrustAuto', settings.thrustAuto === false ? 'manual' : 'auto', 'data-v');
@@ -577,6 +588,14 @@
       settings.modelYaw = 0; settings.modelScale = 1;
       if (Attitude3D.applyUserTransform) Attitude3D.applyUserTransform();
       saveSettings(); syncSettingsUi();
+    });
+    $('setFilter').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button') : null;
+      if (!b || !b.dataset.v) return;
+      var key = b.dataset.v === 'air' ? 'fAir' : (b.dataset.v === 'gnd' ? 'fGnd' : 'fSur');
+      settings[key] = !settings[key];
+      b.classList.toggle('on', settings[key]);
+      saveSettings();
     });
     $('maxThrust').addEventListener('input', function () {
       settings.maxThrust = parseFloat(this.value) || 110;

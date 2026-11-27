@@ -1363,7 +1363,7 @@
           el('text', { x: (top[0] + 8).toFixed(1), y: (top[1] - 4).toFixed(1), 'font-size': 9,
             'font-family': 'WT Mono, Consolas, monospace', fill: col }, contactG)
             .textContent = (cc.est ? '~' : '') +
-              (cc.dist > 1000 ? (cc.dist / 1000).toFixed(0) + 'km' : Math.round(cc.dist) + 'm');
+              (cc.dist > 1000 ? (cc.dist / 1000).toFixed(1) + 'km' : Math.round(cc.dist) + 'm');
         }
 
         /* ---- 本机速度矢量：长度随速度，方向随航迹 ---- */

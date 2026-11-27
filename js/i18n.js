@@ -8,7 +8,7 @@
     zh: {
       /* 设置面板 */
       settings: '设置', themeL: '仪表风格', modelL: '3D 机模', sensorL: '画面', thrustL: '单发推力', thrustU: '推力', tAuto: '按机型自动', tManual: '手动',
-      calibL: '姿态校准', dispL: '显示', layoutL: '布局', unitsL: '单位', langL: '语言', uiL: '界面',
+      calibL: '姿态校准', filterL: '态势过滤', fAir: '飞机/导弹', fGnd: '地面', fSur: '水面', dispL: '显示', layoutL: '布局', unitsL: '单位', langL: '语言', uiL: '界面',
       done: '完成', autosave: '设置会自动保存',
       tWide: '俄系/中式大屏', tF15: '美系 F-15', tPfd: '战斗机 PFD', tClassic: '经典六表', tGlass: '玻璃座舱',
       sTgp: '红外', sWhot: '白热', sBhot: '黑热', sOff: '可见光',
@@ -28,7 +28,7 @@
     },
     en: {
       settings: 'SETTINGS', themeL: 'LAYOUT', modelL: '3D MODEL', sensorL: 'SENSOR', thrustL: 'ENGINE THRUST', thrustU: 'Thrust', tAuto: 'Auto by type', tManual: 'Manual',
-      calibL: 'ATTITUDE', dispL: 'DISPLAY', layoutL: 'PANEL LAYOUT', unitsL: 'UNITS', langL: 'LANGUAGE', uiL: 'THEME',
+      calibL: 'ATTITUDE', filterL: 'CONTACT FILTER', fAir: 'Air/Msl', fGnd: 'Ground', fSur: 'Surface', dispL: 'DISPLAY', layoutL: 'PANEL LAYOUT', unitsL: 'UNITS', langL: 'LANGUAGE', uiL: 'THEME',
       done: 'DONE', autosave: 'Settings are saved automatically',
       tWide: 'RUS/CN WIDE', tF15: 'F-15 MFD', tPfd: 'F-16 PFD', tClassic: 'CLASSIC', tGlass: 'GLASS',
       sTgp: 'IR', sWhot: 'WHOT', sBhot: 'BHOT', sOff: 'EO',
@@ -47,7 +47,7 @@
     },
     ru: {
       settings: 'НАСТРОЙКИ', themeL: 'ИНДИКАЦИЯ', modelL: '3D МОДЕЛЬ', sensorL: 'ДАТЧИК', thrustL: 'ТЯГА', thrustU: 'Тяга', tAuto: 'Авто по типу', tManual: 'Вручную',
-      calibL: 'КРЕН/ТАНГАЖ', dispL: 'ОТОБРАЖЕНИЕ', layoutL: 'РАСКЛАДКА', unitsL: 'ЕДИНИЦЫ', langL: 'ЯЗЫК', uiL: 'ТЕМА',
+      calibL: 'КРЕН/ТАНГАЖ', filterL: 'ФИЛЬТР', fAir: 'Воздух', fGnd: 'Земля', fSur: 'Вода', dispL: 'ОТОБРАЖЕНИЕ', layoutL: 'РАСКЛАДКА', unitsL: 'ЕДИНИЦЫ', langL: 'ЯЗЫК', uiL: 'ТЕМА',
       done: 'ГОТОВО', autosave: 'Настройки сохраняются автоматически',
       tWide: 'ШИРОКИЙ', tF15: 'F-15', tPfd: 'F-16 PFD', tClassic: 'КЛАССИКА', tGlass: 'СТЕКЛО',
       sTgp: 'ИК', sWhot: 'БЕЛ', sBhot: 'ЧЁРН', sOff: 'ТВ',
