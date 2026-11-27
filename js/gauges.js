@@ -1500,24 +1500,11 @@
           var inside = (d <= 4.05) && inScreen;
 
           if (inside) {
-            // 目标：单一等腰三角形，尖头表示目标的机头方向
-            var dRel = ((cc.dir || 0) - C.hdg) * Math.PI / 180;
-            var pTail = pj([bx - Math.sin(dRel) * 0.02, by - Math.cos(dRel) * 0.02, 0]);
-            var pTip = pj([bx + Math.sin(dRel) * 0.02, by + Math.cos(dRel) * 0.02, 0]);
-            var angS = Math.atan2(pTip[1] - pTail[1], pTip[0] - pTail[0]);
+            // 目标：只画一个圆点（不指示朝向）
             var Pc = pj([bx, by, 0]);
-            var TL = 9, TW = 5;                  // 长/半宽（像素）
-            var apex = [Pc[0] + Math.cos(angS) * TL, Pc[1] + Math.sin(angS) * TL];
-            var b1 = [Pc[0] - Math.cos(angS) * TL * 0.55 + Math.cos(angS + Math.PI / 2) * TW,
-                      Pc[1] - Math.sin(angS) * TL * 0.55 + Math.sin(angS + Math.PI / 2) * TW];
-            var b2 = [Pc[0] - Math.cos(angS) * TL * 0.55 - Math.cos(angS + Math.PI / 2) * TW,
-                      Pc[1] - Math.sin(angS) * TL * 0.55 - Math.sin(angS + Math.PI / 2) * TW];
-            el('polygon', { points:
-              apex[0].toFixed(1) + ',' + apex[1].toFixed(1) + ' ' +
-              b1[0].toFixed(1) + ',' + b1[1].toFixed(1) + ' ' +
-              b2[0].toFixed(1) + ',' + b2[1].toFixed(1),
+            el('circle', { cx: Pc[0].toFixed(1), cy: Pc[1].toFixed(1), r: 3.0,
               fill: col, stroke: '#0b1410', 'stroke-width': 1 }, contactG);
-            placeLabel(Pc[0] + 11, Pc[1] - 6, lb, col, contactG, 9);
+            placeLabel(Pc[0] + 8, Pc[1] - 5, lb, col, contactG, 9);
           } else {
             // 超出量程：贴到「坐标轴最外圈（4 单位）」上，画朝外三角 + 真实距离
             var dn2 = Math.sqrt(bx * bx + by * by) || 1;
