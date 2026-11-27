@@ -1175,10 +1175,23 @@
     var K = window.KZ || {};
     function T(k) { return K.t ? K.t(k) : k; }
     var W = 600, H = 600, cx = 300, cy = 340, U = 96;
+    var VBH = 600;
     var OK = 0.35355339;                        // 斜二测 Y 投影系数
 
-    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'xMidYMid meet' }, host);
+    var svg = el('svg', { viewBox: '0 0 600 600', preserveAspectRatio: 'xMidYMid meet' }, host);
     svg.style.cursor = 'grab';
+
+    function applyViewBox() {
+      var r = svg.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      VBH = Math.max(560, Math.min(1800, 600 * r.height / r.width));
+      svg.setAttribute('viewBox', '0 0 600 ' + VBH.toFixed(0));
+      cx = 300;
+      cy = VBH * 0.50;                 // 垂直居中
+      U = Math.max(116, Math.min(190, VBH * 0.21));   // 坐标系放大
+      drawStatic();
+      dirty = true;
+    }
 
     /* ---------------- 视角 ---------------- */
     var view = { yaw: 0, elev: 0, zoom: 1 };
@@ -1280,7 +1293,7 @@
           var P = pj([p[0], p[1], 0]);
           el('text', { x: P[0].toFixed(1), y: (P[1] + (idx < 2 ? 12 : 4)).toFixed(1),
             'text-anchor': 'middle', 'font-size': 9, 'font-family': 'WT Mono, Consolas, monospace',
-            fill: '#3f5f4a' }, staticG).textContent = it[1];
+            fill: '#557f63' }, staticG).textContent = it[1];
         });
       });
 
@@ -1298,20 +1311,21 @@
       poly([[0, -0.34, 0], [0, -0.62, 0.30], [0, -0.72, 0.30], [0, -0.60, 0]], '#9fb0ba', '#8b979e', 1.1);
 
       // 机体三轴：X / Y / Z
-      seg([0, 0, 0], [1.75, 0, 0], '#ff9f5e', 2.4, null, staticG);
-      txt('X', headTo([1.75, 0, 0], '#ff9f5e', staticG), '#ff9f5e', 13, staticG);
-      seg([0, 0, 0], [0, 2.05, 0], '#58a6ff', 2.6, null, staticG);
-      txt('Y', headTo([0, 2.05, 0], '#58a6ff', staticG), '#58a6ff', 13, staticG);
-      seg([0, 0, 0], [0, 0, 1.5], '#7ee787', 2.4, null, staticG);
-      txt('Z', headTo([0, 0, 1.5], '#7ee787', staticG), '#7ee787', 13, staticG);
+      seg([0, 0, 0], [2.0, 0, 0], '#ff9f5e', 2.8, null, staticG);
+      txt('X', headTo([2.0, 0, 0], '#ff9f5e', staticG, 10), '#ff9f5e', 15, staticG);
+      seg([0, 0, 0], [0, 2.35, 0], '#58a6ff', 3.0, null, staticG);
+      txt('Y', headTo([0, 2.35, 0], '#58a6ff', staticG, 10), '#58a6ff', 15, staticG);
+      seg([0, 0, 0], [0, 0, 1.75], '#7ee787', 2.8, null, staticG);
+      txt('Z', headTo([0, 0, 1.75], '#7ee787', staticG, 10), '#7ee787', 15, staticG);
 
       // 图例
       var LEG = [['#ff5cd2', 'MSL'], ['#ff6b5e', 'AIR'], ['#d8a95c', 'GND'], ['#7fd1ff', 'SUR']];
       var legName = { MSL: T('kMsl'), AIR: T('kAir'), GND: T('kGnd'), SUR: T('kSur') };
-      el('text', { x: 22, y: 470, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, staticG)
+      var legY = VBH - 132;
+      el('text', { x: 22, y: legY, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#5f7f6a' }, staticG)
         .textContent = T('legend');
       LEG.forEach(function (it, i) {
-        var y = 492 + i * 19;
+        var y = legY + 22 + i * 19;
         el('rect', { x: 24, y: y - 8, width: 8, height: 8, fill: it[0] }, staticG);
         el('text', { x: 38, y: y, 'font-size': 11, 'font-family': 'WT Mono, Consolas, monospace', fill: '#8fa39a' }, staticG)
           .textContent = it[1] + ' ' + (legName[it[1]] || '');
@@ -1322,6 +1336,9 @@
         .textContent = T('dragHint');
     }
     drawStatic();
+    applyViewBox();
+    if (window.ResizeObserver) new ResizeObserver(applyViewBox).observe(svg);
+    window.addEventListener('resize', applyViewBox);
 
     /* ---------------- 交互：拖动旋转 / 滚轮缩放 / 双击复位 ---------------- */
     var dragging = false, lx = 0, ly = 0;
@@ -1380,6 +1397,29 @@
         /* 敌情圆柱 */
         clear(contactG);
         var CH = 0.26;
+        var placed = [];                       // 已占用的标签框，避免文字叠在一起
+        function canPlace(x, y, w, h) {
+          for (var pi2 = 0; pi2 < placed.length; pi2++) {
+            var b = placed[pi2];
+            if (x < b.x + b.w && x + w > b.x && y < b.y + b.h && y + h > b.y) return false;
+          }
+          return true;
+        }
+        function placeLabel(x, y, text, color, parent, size) {
+          var w = text.length * 5.6, h = 11;
+          var tries = [0, 12, -12, 24];
+          for (var ti = 0; ti < tries.length; ti++) {
+            var yy = y + tries[ti];
+            if (canPlace(x, yy - 9, w, h)) {
+              placed.push({ x: x, y: yy - 9, w: w, h: h });
+              el('text', { x: x.toFixed(1), y: yy.toFixed(1), 'font-size': size || 9,
+                'font-family': 'WT Mono, Consolas, monospace', fill: color }, parent)
+                .textContent = text;
+              return true;
+            }
+          }
+          return false;                        // 挤不下就不画标签（圆柱仍在）
+        }
         for (var ci = 0; ci < cs0.length; ci++) {
           var cc = cs0[ci];
           var d = Math.min(3, cc.dist / 1000 / 5);
@@ -1396,10 +1436,9 @@
           var hs = rr * 2.6;
           seg([bx, by, CH], [bx + Math.sin(dRel) * hs, by + Math.cos(dRel) * hs, CH], col, 2, null, contactG);
           var top = pj([bx, by, CH]);
-          el('text', { x: (top[0] + 8).toFixed(1), y: (top[1] - 4).toFixed(1), 'font-size': 9,
-            'font-family': 'WT Mono, Consolas, monospace', fill: col }, contactG)
-            .textContent = (cc.est ? '~' : '') +
-              (cc.dist > 1000 ? (cc.dist / 1000).toFixed(1) + 'km' : Math.round(cc.dist) + 'm');
+          var lb = (cc.est ? '~' : '') +
+            (cc.dist > 1000 ? (cc.dist / 1000).toFixed(1) + 'km' : Math.round(cc.dist) + 'm');
+          placeLabel(top[0] + 9, top[1] - 4, lb, col, contactG, 9);
         }
 
         /* 本机速度矢量 + 分量 */
@@ -1410,12 +1449,21 @@
         var L = Math.max(0.55, Math.min(2.9, spd / 380));
         var tip = [vdir[0] * L, vdir[1] * L, vdir[2] * L];
 
-        // 分量虚线（投影到三个轴）
+        // 分量以向量形式画出（沿三个轴），并保留到 VEL 尖端的虚线以显示合成关系
         var COLX = '#ff9f5e', COLY = '#58a6ff', COLZ = '#7ee787';
-        seg(tip, [tip[0], 0, 0], COLX, 1, '3 4', velG);
-        seg(tip, [0, tip[1], 0], COLY, 1, '3 4', velG);
-        seg(tip, [0, 0, tip[2]], COLZ, 1, '3 4', velG);
+        var comps = [
+          { v: [tip[0], 0, 0], c: COLX, n: 'X' },
+          { v: [0, tip[1], 0], c: COLY, n: 'Y' },
+          { v: [0, 0, tip[2]], c: COLZ, n: 'Z' }
+        ];
+        comps.forEach(function (cp) {
+          if (Math.abs(cp.v[0]) + Math.abs(cp.v[1]) + Math.abs(cp.v[2]) < 0.02) return;
+          seg([0, 0, 0], cp.v, cp.c, 2.2, null, velG);
+          headTo(cp.v, cp.c, velG, 7);
+          seg(cp.v, tip, cp.c, 1, '3 4', velG);
+        });
 
+        // 主速度矢量
         seg([0, 0, 0], tip, '#ff5cd2', 2.6, null, velG);
         var B = headTo(tip, '#ff5cd2', velG);
 
@@ -1425,13 +1473,35 @@
         var cxv = vTot * vdir[0], cyv = vTot * vdir[1], czv = vTot * vdir[2];
         function sg(n) { return (n >= 0 ? '+' : '\u2212') + Math.abs(Math.round(n)); }
 
-        var lab = el('text', { x: (B[0] + 8).toFixed(1), y: (B[1] + 4).toFixed(1), 'font-size': 11,
-          'font-family': 'WT Mono, Consolas, monospace', fill: '#ff5cd2' }, velG);
-        lab.textContent = 'VEL ' + Math.round(vTot) + ' ' + unit;
+        // 三个分量各自的数值标签
+        var compVals = [
+          { v: [tip[0], 0, 0], c: COLX, t: 'X ' + sg(cxv) },
+          { v: [0, tip[1], 0], c: COLY, t: 'Y ' + sg(cyv) },
+          { v: [0, 0, tip[2]], c: COLZ, t: 'Z ' + sg(czv) }
+        ];
+        compVals.forEach(function (cv2, cidx) {
+          var P = pj(cv2.v);
+          if (!placeLabel(P[0] + 7, P[1] - 4, cv2.t, cv2.c, velG, 10)) {
+            // 分量很小（箭头几乎在原点）时，沿该轴方向外推再放标签，保证 XYZ 三个都可见
+            var u2 = [0, 0, 0];
+            var sgn = cv2.v[cidx] >= 0 ? 1 : -1;
+            u2[cidx] = sgn * 0.26;
+            var P2 = pj(u2);
+            placeLabel(P2[0] + 8, P2[1] - 6, cv2.t, cv2.c, velG, 10);
+          }
+        });
 
-        var comp = el('text', { x: (B[0] + 8).toFixed(1), y: (B[1] + 19).toFixed(1), 'font-size': 10,
-          'font-family': 'WT Mono, Consolas, monospace', fill: '#c9a0c0' }, velG);
-        comp.textContent = 'X ' + sg(cxv) + '  Y ' + sg(cyv) + '  Z ' + sg(czv);
+        var vTxt = 'VEL ' + Math.round(vTot) + ' ' + unit;
+        var bx0 = B[0] + 14, by0 = B[1] + 16;
+        var vw = vTxt.length * 5.8;
+        for (var vi = 0; vi < 4; vi++) {
+          if (canPlace(bx0, by0 - 9, vw, 26)) break;
+          by0 += 26;
+        }
+        placed.push({ x: bx0, y: by0 - 9, w: vw, h: 26 });
+        el('text', { x: bx0.toFixed(1), y: by0.toFixed(1), 'font-size': 11,
+          'font-family': 'WT Mono, Consolas, monospace', fill: '#ff5cd2' }, velG).textContent = vTxt;
+
       }
     };
   }
