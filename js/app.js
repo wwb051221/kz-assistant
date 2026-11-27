@@ -298,6 +298,32 @@
     return r > 180 && g < 120 && b < 120;
   }
 
+  /* 地图比例自标定：用「2 秒位移 + 真空速」反推 米/归一化单位 */
+  var mapScale = 0;          // 米 / 归一化单位（0 = 未标定）
+  var mapScaleN = 0;
+  var calPrev = null;
+
+  function calibrateScale(self, now, tasKmh) {
+    if (!(tasKmh > 60)) { calPrev = null; return; }       // 太慢不计
+    if (!calPrev) { calPrev = { x: self.x, y: self.y, t: now }; return; }
+
+    var span = now - calPrev.t;
+    if (span < 1800) return;                              // 累积到 ~2 秒
+    if (span > 5000) { calPrev = { x: self.x, y: self.y, t: now }; return; }
+
+    var dnx = self.x - calPrev.x, dny = self.y - calPrev.y;
+    var dn = Math.sqrt(dnx * dnx + dny * dny);
+    calPrev = { x: self.x, y: self.y, t: now };
+    if (dn < 1e-4) return;
+
+    var meters = (tasKmh / 3.6) * (span / 1000);
+    var sc = meters / dn;
+    if (!(sc > 100 && sc < 5e6)) return;                  // 离谱值丢弃
+    mapScale = mapScale > 0 ? (mapScale * 0.8 + sc * 0.2) : sc;
+    mapScaleN++;
+    if (window.KZ) KZ.mapScale = mapScale;
+  }
+
   function applyMap(list) {
     if (!Array.isArray(list)) return;
 
@@ -316,9 +342,11 @@
       }
     }
     lastSelf = { x: self.x, y: self.y, t: now };
+    calibrateScale(self, now, V.tas);
 
     // 已点亮目标（游戏地图本身给的就是点亮过的）
-    var W = GRID ? GRID[0] : 131072, H = GRID ? GRID[1] : 131072;
+    var W = mapScale > 0 ? mapScale : (GRID ? GRID[0] : 131072);
+    var H = mapScale > 0 ? mapScale : (GRID ? GRID[1] : 131072);
     var out = [];
     for (var k = 0; k < list.length; k++) {
       var o = list[k];
@@ -340,7 +368,8 @@
       if (typeof o.dx === 'number' && typeof o.dy === 'number' && (o.dx || o.dy)) {
         dir = ((Math.atan2(o.dx, -o.dy) * 180 / Math.PI) + 360) % 360;
       }
-      out.push({ brg: brg, dist: dist, kind: kind, icon: o.icon || '', type: o.type, dir: dir });
+      out.push({ brg: brg, dist: dist, kind: kind, icon: o.icon || '', type: o.type, dir: dir,
+                 est: !(mapScale > 0) });
     }
     var PRI = { MSL: 0, AIR: 1, GND: 2, SUR: 3 };
     out.sort(function (a, b) {

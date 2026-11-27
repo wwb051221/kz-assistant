@@ -1037,7 +1037,8 @@
           row.kind.textContent = c.kind;
           row.kind.setAttribute('fill', c.kind === 'MSL' ? '#ff5cd2' : (c.kind === 'AIR' ? '#ff6b5e' : '#d8a95c'));
           row.brg.textContent = ('00' + Math.round(c.brg) % 360).slice(-3) + '\u00b0';
-          row.dist.textContent = c.dist > 1000 ? (c.dist / 1000).toFixed(1) + ' km' : Math.round(c.dist) + ' m';
+          row.dist.textContent = (c.est ? '~' : '') +
+            (c.dist > 1000 ? (c.dist / 1000).toFixed(1) + ' km' : Math.round(c.dist) + ' m');
           row.name.textContent = c.icon && c.icon !== 'none' ? c.icon : '';
         }
         noC.style.display = cs.length ? 'none' : 'block';
@@ -1361,7 +1362,8 @@
           var top = pj([bx, by, CH]);
           el('text', { x: (top[0] + 8).toFixed(1), y: (top[1] - 4).toFixed(1), 'font-size': 9,
             'font-family': 'WT Mono, Consolas, monospace', fill: col }, contactG)
-            .textContent = cc.dist > 1000 ? (cc.dist / 1000).toFixed(0) + 'km' : Math.round(cc.dist) + 'm';
+            .textContent = (cc.est ? '~' : '') +
+              (cc.dist > 1000 ? (cc.dist / 1000).toFixed(0) + 'km' : Math.round(cc.dist) + 'm');
         }
 
         /* ---- 本机速度矢量：长度随速度，方向随航迹 ---- */
